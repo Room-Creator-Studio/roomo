@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOM | Login & Sign Up</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="loginnsignup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <a href="index.html" class="logo">ROOM</a>
+            <p class="tagline" id="tagline">Welcome back</p>
+        </header>
+
+        <div class="card">
+            <div class="form-toggle">
+                <button class="toggle-btn active" onclick="showForm('login')">Login</button>
+                <button class="toggle-btn" onclick="showForm('signup')">Sign Up</button>
+            </div>
+
+            <div class="form-container">
+                <!-- Login Form -->
+                <form id="loginForm" class="active">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="hello@example.com" required>
+                        <div class="error-msg">Please enter a valid email</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" placeholder="••••••••" required>
+                            <span class="toggle-password" onclick="togglePasswordVisibility('loginPassword')">SHOW</span>
+                        </div>
+                    </div>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                    <button type="submit" class="btn-primary">Login</button>
+                    <div class="form-footer">
+                        Don't have an account? <span class="link-toggle" onclick="showForm('signup')">Sign up</span>
+                    </div>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signupForm" class="hidden-left">
+                    <div class="form-group">
+                        <label for="signupName">Username</label>
+                        <input type="text" id="signupName" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" placeholder="hello@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="signupPassword" placeholder="••••••••" required>
+                            <span class="toggle-password" onclick="togglePasswordVisibility('signupPassword')">SHOW</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupConfirmPassword">Confirm Password</label>
+                        <input type="password" id="signupConfirmPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Sign Up</button>
+                    <div class="form-footer">
+                        Already have an account? <span class="link-toggle" onclick="showForm('login')">Login</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="loginnsignup.js"></script>
+</body>
+</html>

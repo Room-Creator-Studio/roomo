@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOM - A Quiet Space for Meaningful Connections</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="home.css">
+</head>
+<body>
+    <header class="header">
+        <button class="header-btn profile-btn" id="profileBtn">
+            <i class="fas fa-user"></i>
+        </button>
+        <a href="index.html" class="logo">ROOM</a>
+        <button class="header-btn" id="feedBtn">
+            <i class="fas fa-feather-alt"></i>
+            <span>My Thoughts</span>
+        </button>
+    </header>
+
+    <div class="affirmation">
+        "In quiet moments, we find our deepest connections. Take your time."
+    </div>
+
+    <main class="main-content">
+        <div class="layout-container">
+            <section class="your-spaces">
+                <h2 class="section-title">Your Safe Spaces</h2>
+                <div id="joinedRoomsContainer"></div>
+                <div class="empty-state" id="emptyState" style="display:none;">
+                    <i class="fas fa-couch"></i>
+                    <h3>No rooms joined or created yet.</h3>
+                </div>
+            </section>
+
+            <div class="center-divider">
+                <button class="create-room-btn" id="createRoomBtn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            <section class="find-people">
+                <h2 class="section-title">Find Your People</h2>
+                <div id="availableRoomsContainer"></div>
+                <div class="empty-state" id="availableEmptyState" style="display:none;">
+                    <i class="fas fa-door-closed"></i>
+                    <h3>No rooms available.</h3>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="room-view-page" id="roomViewPage">
+        <div class="room-view-header">
+            <button class="header-btn" onclick="closeRoomView()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <h2 class="room-view-title" id="roomViewTitle"></h2>
+            <div class="room-creator" id="roomCreator"></div>
+        </div>
+
+        <div class="room-view-container">
+            <div class="members-sidebar">
+                <div class="members-header">MEMBERS</div>
+                <div id="membersList"></div>
+            </div>
+
+            <div class="messages-section">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="message-input-container">
+                    <div class="message-input-wrapper">
+                        <textarea class="message-input" id="messageInput" placeholder="Share your thoughts gently..." rows="1"></textarea>
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="create-room-page" id="createRoomPage">
+        <div class="create-room-header">
+            <button class="header-btn" onclick="closeCreateRoom()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <h2>Create Your Space</h2>
+        </div>
+        <div class="create-room-content">
+            <div class="form-group">
+                <label>Room Name</label>
+                <input type="text" id="newRoomName" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="newRoomDescription" maxlength="200"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Member Limit (2-12)</label>
+                <input type="number" id="newRoomLimit" min="2" max="12" value="8">
+            </div>
+            <div style="display:flex;gap:1rem;">
+                <button class="btn-secondary" onclick="closeCreateRoom()" style="flex:1;">Cancel</button>
+                <button class="btn-primary" onclick="createNewRoom()" style="flex:1;">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-modal">
+            <h2>Your Space</h2>
+            <p class="settings-subtext">Adjust things quietly. Nothing here affects how others see you.</p>
+
+            <section>
+                <h4>Appearance</h4>
+                <label><input type="radio" name="theme"> Dark</label>
+                <label><input type="radio" name="theme" checked> Light</label>
+                <label><input type="checkbox"> Reduce animations</label>
+            </section>
+
+            <section>
+                <h4>Notifications</h4>
+                <label><input type="checkbox"> Quiet mode</label>
+                <label><input type="checkbox" checked> Only important updates</label>
+            </section>
+
+            <section>
+                <h4>Privacy</h4>
+                <label><input type="checkbox"> Appear invisible</label>
+                <label><input type="checkbox"> Hide activity status</label>
+            </section>
+
+            <section id="resetSection" style="display:none;">
+                <h4>Data</h4>
+                <button class="btn-secondary" onclick="resetEverything()" style="width:100%;margin-top:0.5rem;">Reset Everything</button>
+                <p style="font-size:0.8rem;color:#9A9A9A;margin-top:0.5rem;">This will delete all rooms, messages, and settings</p>
+            </section>
+
+            <div style="display:flex;flex-direction:column;gap:1rem;margin-top:2rem;">
+                <button class="btn-primary" onclick="saveSettings()">Save quietly</button>
+                <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+<div class="feed-page" id="feedPage">
+    <div class="feed-header">
+        <div class="feed-header-top">
+            <button class="header-btn" onclick="closeFeed()">
+                <i class="fas fa-arrow-left"></i> Home
+            </button>
+            <h2>My Thoughts</h2>
+            <button class="create-post-btn" id="createPostBtn" aria-label="Create a new post">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+            <div class="feed-subheader">
+                <p>Your quiet moments, collected in one place</p>
+            </div>
+        </div>
+
+        <div class="feed-content" id="feedContent"></div>
+
+        <div class="feed-end">
+            <i class="fas fa-moon"></i>
+            <p>That's all for today. See you tomorrow.</p>
+        </div>
+    </div>
+    <!-- Create Post Modal -->
+    <div class="create-post-modal" id="createPostModal">
+        <div class="create-post-container">
+            <div class="create-post-header">
+                <h3>Share a Thought</h3>
+                <button class="close-btn" onclick="closeCreatePost()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="create-post-content">
+                <div class="form-group">
+                    <label>Choose a space (optional)</label>
+                    <select id="postRoomSelect">
+                        <option value="">Personal thought (visible to all)</option>
+                    </select>
+                    <p class="helper-text">Posts in a room are only visible to room members</p>
+                </div>
+
+                <div class="form-group">
+                    <label>What's on your mind?</label>
+                    <textarea id="postContent" placeholder="Share your quiet thoughts, moments, or reflections..." maxlength="500"></textarea>
+                    <div class="char-count"><span id="postCharCount">0</span>/500</div>
+                </div>
+
+                <div class="media-upload-section">
+                    <label>Add media (optional)</label>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="mediaInput" accept="image/*,video/*" multiple style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('mediaInput').click()">
+                            <i class="fas fa-camera"></i>
+                            <span>Add Photos or Videos</span>
+                        </button>
+                        <p class="upload-hint">Up to 4 images or 1 video</p>
+                    </div>
+                    
+                    <div class="media-preview" id="mediaPreview">
+                        <!-- Media previews will appear here -->
+                    </div>
+                </div>
+
+                <div class="create-post-actions">
+                    <button class="btn-secondary" onclick="closeCreatePost()">Cancel</button>
+                    <button class="btn-primary" onclick="createPost()">Share Quietly</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="home.js"></script>
+</body>
+</html>

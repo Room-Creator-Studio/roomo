@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOM - Your Quiet Space</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="homev1.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <button class="header-btn" id="profileBtn" aria-label="Profile">
+            <i class="fas fa-user-circle"></i>
+        </button>
+        
+        <div class="logo">ROOM</div>
+        
+        <button class="header-btn disabled" id="feedBtn" aria-label="Feed" disabled>
+            <i class="fas fa-stream"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="illustration fade-in">
+            <div class="door-icon">
+                <i class="fas fa-door-open"></i>
+            </div>
+        </div>
+        
+        <h1 class="welcome-headline fade-in delay-1">Welcome to Your Quiet Space</h1>
+        
+        <p class="welcome-subtext fade-in delay-2">
+            You haven't created or joined any rooms yet. That's perfectly okay.<br>
+            When you're ready, create your own safe space or find one that feels right.
+        </p>
+        
+        <div class="button-container fade-in delay-3">
+            <button class="btn btn-primary" id="createRoomBtn">
+                Create Your First Room
+            </button>
+            <button class="btn btn-secondary" id="browseRoomsBtn">
+                Browse Safe Spaces
+            </button>
+        </div>
+        
+        <div class="suggestions fade-in delay-4">
+            <div class="suggestions-title">Popular starting points:</div>
+            <div class="suggestion-pills">
+                <div class="pill" data-room="late-night">Late Night Thoughts</div>
+                <div class="pill" data-room="book-lovers">Book Lovers</div>
+                <div class="pill" data-room="creative-minds">Creative Minds</div>
+            </div>
+        </div>
+        
+        <div class="helper-text fade-in delay-5">
+            Not sure where to start? That's normal. You can explore first or create a space just for you.
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Your space, your pace. No pressure, just presence.</p>
+    </footer>
+
+    <!-- Settings Overlay -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-modal">
+            <h2>Your Space</h2>
+            <p class="settings-subtext">Adjust things quietly. Nothing here affects how others see you.</p>
+
+            <section>
+                <h4>Appearance</h4>
+                <label><input type="radio" name="theme" checked> Dark</label>
+                <label><input type="radio" name="theme"> Light</label>
+                <label><input type="radio" name="theme"> System</label>
+                <label><input type="checkbox"> Reduce animations</label>
+            </section>
+
+            <section>
+                <h4>Notifications</h4>
+                <label><input type="checkbox"> Quiet mode (minimal notifications)</label>
+                <label><input type="checkbox" checked> Only important updates</label>
+                <label><input type="checkbox"> Pause all notifications</label>
+            </section>
+
+            <section>
+                <h4>Experience</h4>
+                <label><input type="checkbox"> Hide member counts</label>
+                <label><input type="checkbox"> Disable read receipts</label>
+                <label><input type="checkbox" checked> Keep things minimal</label>
+            </section>
+
+            <section>
+                <h4>Privacy</h4>
+                <label><input type="checkbox"> Appear invisible</label>
+                <label><input type="checkbox"> Hide activity status</label>
+            </section>
+
+            <section id="resetSection" style="display:none;">
+                <h4>Data</h4>
+                <button class="btn-secondary" onclick="resetEverything()" style="width:100%;margin-top:0.5rem;">Reset Everything</button>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem;">This will delete all rooms, messages, and settings</p>
+            </section>
+
+            <div class="settings-actions">
+                <button class="btn-primary" onclick="saveSettings()">Save quietly</button>
+                <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn-ghost" onclick="logout()">Log out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Room Page -->
+    <div class="create-room-page" id="createRoomPage">
+        <div class="create-room-container">
+            <div class="create-room-header">
+                <button class="back-btn" onclick="closeCreateRoom()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <h2>Create Your Space</h2>
+                <button class="close-btn" onclick="closeCreateRoom()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="create-room-content">
+                <div class="create-intro">
+                    <i class="fas fa-door-open"></i>
+                    <h3>Create Your Gentle Space</h3>
+                    <p>A safe corner for you and a few close souls. Take your time.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>What will you call this space?</label>
+                    <input type="text" id="newRoomName" placeholder="e.g., Late Night Thinkers, Quiet Corner" maxlength="50">
+                    <div class="char-count"><span id="nameCount">0</span>/50</div>
+                    <p class="helper-text">Choose something that feels right</p>
+                </div>
+
+                <div class="form-group">
+                    <label>What makes this space special?</label>
+                    <textarea id="newRoomDescription" placeholder="Describe the vibe, what you'll share, who might feel at home here..." maxlength="200"></textarea>
+                    <div class="char-count"><span id="descCount">0</span>/200</div>
+                    <p class="helper-text">Help others understand if this is their kind of space</p>
+                </div>
+
+                <div class="form-group">
+                    <label>How cozy should this space be?</label>
+                    <input type="number" id="newRoomLimit" placeholder="2-12 people" min="2" max="12" value="8">
+                    <p class="helper-text">Smaller = more intimate. You can always adjust this later.</p>
+                </div>
+
+                <div class="create-room-actions">
+                    <button class="btn-secondary" onclick="closeCreateRoom()">Maybe Later</button>
+                    <button class="btn-primary" onclick="createNewRoom()">Create Space</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="homev1.js"></script>
+</body>
+</html>
