@@ -30,24 +30,23 @@
             </div>
         </div>
         
-        <h1 class="welcome-headline fade-in delay-1">Welcome to Your Quiet Space</h1>
+        <h1 class="welcome-headline fade-in delay-1">Welcome Home</h1>
         
         <p class="welcome-subtext fade-in delay-2">
-            You haven't created or joined any rooms yet. That's perfectly okay.<br>
-            When you're ready, create your own safe space or find one that feels right.
-        </p>
+            Your rooms are waiting to be made...<br>
+            A gentle space for you and a few close souls.
         
         <div class="button-container fade-in delay-3">
             <button class="btn btn-primary" id="createRoomBtn">
-                Create a small room
+                Make your first room
             </button>
             <button class="btn btn-secondary" id="browseRoomsBtn">
-                Enter quietly
+                Find your people
             </button>
         </div>
         
         <div class="suggestions fade-in delay-4">
-            <div class="suggestions-title">Popular starting points:</div>
+            <div class="suggestions-title">Others are gathering in:</div>
             <div class="suggestion-pills">
                 <div class="pill" data-room="late-night">Late Night Thoughts</div>
                 <div class="pill" data-room="book-lovers">Book Lovers</div>
@@ -56,7 +55,7 @@
         </div>
         
         <div class="helper-text fade-in delay-5">
-            Not sure where to start? That's normal. You can explore first or create a space just for you.
+            Can't find your people? Make your own Room.
         </div>
     </main>
 
@@ -120,7 +119,7 @@
                 <button class="back-btn" onclick="closeCreateRoom()">
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
-                <h2>Create Your Space</h2>
+                <h2>Make your room</h2>
                 <button class="close-btn" onclick="closeCreateRoom()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -129,33 +128,33 @@
             <div class="create-room-content">
                 <div class="create-intro">
                     <i class="fas fa-door-open"></i>
-                    <h3>Create Your Gentle Space</h3>
+                    <h3>Build your corner</h3>
                     <p>A safe corner for you and a few close souls. Take your time.</p>
                 </div>
 
                 <div class="form-group">
-                    <label>What will you call this space?</label>
+                    <label>What should we call this room?</label>
                     <input type="text" id="newRoomName" placeholder="e.g., Late Night Thinkers, Quiet Corner" maxlength="50">
                     <div class="char-count"><span id="nameCount">0</span>/50</div>
                     <p class="helper-text">Choose something that feels right</p>
                 </div>
 
                 <div class="form-group">
-                    <label>What makes this space special?</label>
+                    <label>What kind of room is this?</label>
                     <textarea id="newRoomDescription" placeholder="Describe the vibe, what you'll share, who might feel at home here..." maxlength="200"></textarea>
                     <div class="char-count"><span id="descCount">0</span>/200</div>
                     <p class="helper-text">Help others understand if this is their kind of space</p>
                 </div>
 
                 <div class="form-group">
-                    <label>How cozy should this space be?</label>
+                    <label>How many friends can come in?</label>
                     <input type="number" id="newRoomLimit" placeholder="2-12 people" min="2" max="12" value="8">
                     <p class="helper-text">Smaller = more intimate. You can always adjust this later.</p>
                 </div>
 
                 <div class="create-room-actions">
-                    <button class="btn-secondary" onclick="closeCreateRoom()">Maybe Later</button>
-                    <button class="btn-primary" onclick="createNewRoom()">Create Space</button>
+                    <button class="btn-secondary" onclick="closeCreateRoom()">Not yet</button>
+                    <button class="btn-primary" onclick="createNewRoom()">Make the room</button>
                 </div>
             </div>
         </div>
@@ -163,5 +162,4 @@
 
     <script src="homev1.js"></script>
 </body>
-
 </html>
