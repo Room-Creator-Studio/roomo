@@ -1,3 +1,4 @@
+// Storage helper with localStorage
 const storage = {
     get: (k) => {
         try {
@@ -10,61 +11,28 @@ const storage = {
     set: (k, v) => {
         try {
             localStorage.setItem(k, JSON.stringify(v));
-            console.log(`Saved ${k}`);
         } catch (e) {
             console.error('Storage error:', e);
         }
-    },
-    remove: (k) => {
-        try {
-            localStorage.removeItem(k);
-        } catch {}
-    },
-    clear: () => {
-        try {
-            localStorage.clear();
-        } catch {}
     }
 };
 
-// Media handling
-let selectedMedia = [];
-const MAX_IMAGES = 4;
-const MAX_VIDEO = 1;
-
-// CRITICAL: Get current user from sessionStorage (per-tab session)
+// Session check
 const sessionUser = sessionStorage.getItem('currentSessionUser');
 const sessionEmail = sessionStorage.getItem('currentSessionEmail');
 
-console.log('=== SESSION CHECK ===');
-console.log('Session user:', sessionUser);
-console.log('Session email:', sessionEmail);
-
-// If no session, redirect to login
 if (!sessionUser || !sessionEmail) {
-    console.log('No active session, redirecting to login');
     window.location.href = 'loginnsignup.html';
     throw new Error('No session');
 }
 
 const currentUser = sessionUser;
 const currentEmail = sessionEmail;
-
-console.log('=== ACTIVE USER ===');
-console.log('Current user:', currentUser);
-console.log('Current email:', currentEmail);
-
-// Get account info
 const accounts = storage.get('accounts') || {};
 const userAccount = accounts[currentEmail] || {};
 const isCreator = userAccount.isCreator || currentEmail === 'harki.amrik@gmail.com';
 
-console.log('Is creator:', isCreator);
-
-// Load global rooms
 let rooms = storage.get('rooms') || [];
-
-// Load settings
 let settings = storage.get('settings') || {
     theme: 'dark',
     reduceAnimations: false,
@@ -73,24 +41,15 @@ let settings = storage.get('settings') || {
     appearInvisible: false,
     hideActivityStatus: false
 };
-
-// Load feed posts
 let feedPosts = storage.get('feedPosts') || [];
-
 let currentRoomId = null;
-
-console.log('Loaded rooms:', rooms.length);
-console.log('My rooms:', rooms.filter(r => r.members && r.members.includes(currentUser)).length);
+let selectedMedia = [];
+const MAX_IMAGES = 4;
 
 function save() { 
-    console.log('=== SAVING DATA ===');
     storage.set('rooms', rooms);
     storage.set('settings', settings);
     storage.set('feedPosts', feedPosts);
-    
-    // Verify save
-    const afterSave = storage.get('rooms');
-    console.log('Verified rooms saved:', afterSave ? afterSave.length : 0);
 }
 
 window.resetEverything = function() {
@@ -98,22 +57,17 @@ window.resetEverything = function() {
         alert('Only the Creator account can reset everything.');
         return;
     }
-    
     if (confirm('Are you sure you want to reset everything?')) {
         const creatorAccount = accounts['harki.amrik@gmail.com'];
-        storage.clear();
+        localStorage.clear();
         sessionStorage.clear();
-        if (creatorAccount) {
-            storage.set('accounts', { 'harki.amrik@gmail.com': creatorAccount });
-        }
+        if (creatorAccount) storage.set('accounts', { 'harki.amrik@gmail.com': creatorAccount });
         alert('Everything has been reset.');
         window.location.href = 'loginnsignup.html';
     }
 };
 
 function init() {
-    console.log('=== INITIALIZING APP ===');
-    
     renderJoined();
     renderAvailable();
     loadSettings();
@@ -138,38 +92,27 @@ function init() {
     };
     
     document.getElementById('mediaInput').onchange = handleMediaSelect;
-    
     document.getElementById('createPostModal').onclick = (e) => {
         if (e.target.id === 'createPostModal') closeCreatePost();
     };
-    
     document.getElementById('settingsOverlay').onclick = (e) => {
         if (e.target.id === 'settingsOverlay') closeSettings();
     };
-    
-    const saveSettingsBtn = document.querySelector('#settingsOverlay .btn-primary');
-    if (saveSettingsBtn) {
-        saveSettingsBtn.onclick = saveSettings;
-    }
-    
-    console.log('App initialized');
+    document.getElementById('roomSettingsModal').onclick = (e) => {
+        if (e.target.id === 'roomSettingsModal') closeRoomSettings();
+    };
 }
 
 function checkCreatorAccess() {
     const resetSection = document.getElementById('resetSection');
-    if (resetSection) {
-        resetSection.style.display = isCreator ? 'block' : 'none';
-    }
+    if (resetSection) resetSection.style.display = isCreator ? 'block' : 'none';
 }
 
 function renderJoined() {
     rooms = storage.get('rooms') || [];
-    
     const joined = rooms.filter(r => r.members && r.members.includes(currentUser));
     const el = document.getElementById('joinedRoomsContainer');
     const empty = document.getElementById('emptyState');
-    
-    console.log('Rendering joined rooms:', joined.length);
     
     if (!joined.length) {
         empty.style.display = 'block';
@@ -178,28 +121,30 @@ function renderJoined() {
     }
     
     empty.style.display = 'none';
-    el.innerHTML = joined.map(r => `
+    el.innerHTML = joined.map(r => {
+        const roomTypeLabel = r.roomType === 'creator-only' ? 'Your voice' : 
+                             r.roomType === 'no-text' ? 'Quiet space' : 'Open hearts';
+        return `
         <div class="room-card joined" onclick="openRoom(${r.id})">
             <h3 class="room-name">${r.name}</h3>
             <p class="room-description">${r.description}</p>
             <div class="room-meta">
                 <div class="member-count">
                     <i class="fas fa-user-friends"></i>
-                    <span>${r.members.length} ${r.members.length === 1 ? 'friend' : 'friends'}</span>
+                    <span>${r.members.length} ${r.members.length === 1 ? 'soul' : 'souls'}</span>
                 </div>
+                <span class="room-type-badge">${roomTypeLabel}</span>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function renderAvailable() {
     rooms = storage.get('rooms') || [];
-    
     const available = rooms.filter(r => !r.members || !r.members.includes(currentUser));
     const container = document.getElementById('availableRoomsContainer');
     const empty = document.getElementById('availableEmptyState');
-
-    console.log('Rendering available rooms:', available.length);
 
     if (!available.length) {
         container.innerHTML = '';
@@ -208,8 +153,10 @@ function renderAvailable() {
     }
 
     if (empty) empty.style.display = 'none';
-
-    container.innerHTML = available.map(r => `
+    container.innerHTML = available.map(r => {
+        const roomTypeLabel = r.roomType === 'creator-only' ? 'Your voice' : 
+                             r.roomType === 'no-text' ? 'Quiet space' : 'Open hearts';
+        return `
         <div class="room-card">
             <h3 class="room-name">${r.name}</h3>
             <p class="room-description">${r.description}</p>
@@ -218,31 +165,98 @@ function renderAvailable() {
                     <i class="fas fa-user-friends"></i>
                     <span>${r.members ? r.members.length : 0} ${r.members && r.members.length === 1 ? 'soul' : 'souls'}</span>
                 </div>
-                <button class="join-btn" onclick="joinRoom(event, ${r.id})">
-                    <i class="fas fa-door-open"></i>
-                    Join Quietly
-                </button>
+                <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <span class="room-type-badge">${roomTypeLabel}</span>
+                    <button class="join-btn" onclick="joinRoom(event, ${r.id})">
+                        <i class="fas fa-door-open"></i> Join Quietly
+                    </button>
+                </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
+}
+
+function checkCanSendMessage(room) {
+    if (room.roomType === 'no-text') return false;
+    if (room.roomType === 'creator-only' && room.creator !== currentUser) return false;
+    return true;
+}
+
+function cleanExpiredMessages(room) {
+    if (!room.messages || !room.messageTimer || room.messageTimer === 'none') return;
+    const now = Date.now();
+    const timerMs = parseInt(room.messageTimer) * 60 * 1000;
+    
+    let changed = false;
+    room.messages = room.messages.filter(msg => {
+        if (!msg.timestamp) return true;
+        if (now - msg.timestamp >= timerMs) {
+            changed = true;
+            return false;
+        }
+        return true;
+    });
+    
+    if (changed) {
+        rooms = storage.get('rooms') || [];
+        const roomIndex = rooms.findIndex(r => r.id === room.id);
+        if (roomIndex !== -1) {
+            rooms[roomIndex] = room;
+            save();
+        }
+    }
+}
+
+function startMessageTimer(messageElement, expiresAt) {
+    const updateTimer = () => {
+        const now = Date.now();
+        const remaining = expiresAt - now;
+        
+        if (remaining <= 0) {
+            messageElement.style.opacity = '0.3';
+            const timerEl = messageElement.querySelector('.message-timer');
+            if (timerEl) timerEl.textContent = 'Gone';
+            return;
+        }
+        
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        const timerEl = messageElement.querySelector('.message-timer');
+        if (timerEl) timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        setTimeout(updateTimer, 1000);
+    };
+    updateTimer();
 }
 
 function openRoom(id) {
     rooms = storage.get('rooms') || [];
-    
     currentRoomId = id;
     const room = rooms.find(r => r.id === id);
-    if (!room) {
-        console.error('Room not found:', id);
-        return;
-    }
-    
-    console.log('=== OPENING ROOM ===');
-    console.log('Room:', room.name);
-    console.log('Messages:', room.messages ? room.messages.length : 0);
+    if (!room) return;
     
     document.getElementById('roomViewTitle').textContent = room.name;
     document.getElementById('roomCreator').textContent = `Created by ${room.creator}`;
+    
+    const roomSettingsBtn = document.getElementById('roomSettingsBtn');
+    if (roomSettingsBtn) roomSettingsBtn.style.display = room.creator === currentUser ? 'flex' : 'none';
+    
+    const canSendMessages = checkCanSendMessage(room);
+    const messageInputContainer = document.querySelector('.message-input-container');
+    
+    if (!canSendMessages) {
+        messageInputContainer.style.opacity = '0.5';
+        messageInputContainer.style.pointerEvents = 'none';
+        if (room.roomType === 'creator-only') {
+            document.getElementById('messageInput').placeholder = 'This room is just for listening right now.';
+        } else if (room.roomType === 'no-text') {
+            document.getElementById('messageInput').placeholder = 'A quiet space, just for being together...';
+        }
+    } else {
+        messageInputContainer.style.opacity = '1';
+        messageInputContainer.style.pointerEvents = 'auto';
+        document.getElementById('messageInput').placeholder = 'Share your thoughts gently...';
+    }
     
     document.getElementById('membersList').innerHTML = room.members.map(m => {
         const init = m.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -257,6 +271,7 @@ function openRoom(id) {
         `;
     }).join('');
     
+    cleanExpiredMessages(room);
     renderMessages(room);
     document.getElementById('roomViewPage').style.display = 'block';
 }
@@ -269,31 +284,43 @@ function closeRoomView() {
 function renderMessages(room) {
     const el = document.getElementById('messagesContainer');
     
-    console.log('=== RENDERING MESSAGES ===');
-    console.log('Room:', room.name);
-    console.log('Room ID:', room.id);
-    console.log('Messages array:', room.messages);
-    console.log('Messages count:', room.messages ? room.messages.length : 0);
-    console.log('Current user:', currentUser);
-    
     if (!room.messages || room.messages.length === 0) {
-        el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><h3>No messages yet</h3><p>Start the conversation with a gentle thought</p></div>';
+        el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><h3>Nobody\'s said anything yet. Break the ice?</h3><p>Start whenever you feel like it</p></div>';
         return;
     }
     
-    // Build the HTML
-    const html = room.messages.map((m, idx) => {
+    const hasTimer = room.messageTimer && room.messageTimer !== 'none';
+    const timerMs = hasTimer ? parseInt(room.messageTimer) * 60 * 1000 : 0;
+    const now = Date.now();
+    
+    const html = room.messages.map((m) => {
         const init = m.author.split(' ').map(n => n[0]).join('').toUpperCase();
         const isCurrentUser = m.author === currentUser;
         
-        console.log(`Msg ${idx}: ${m.author} - "${m.content.substring(0, 20)}..." - isMine: ${isCurrentUser}`);
+        let timerDisplay = '';
+        let messageClass = '';
+        
+        if (hasTimer && m.timestamp) {
+            const expiresAt = m.timestamp + timerMs;
+            const remaining = expiresAt - now;
+            
+            if (remaining > 0) {
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                timerDisplay = `<span class="message-timer"><i class="fas fa-clock"></i> ${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
+            } else {
+                messageClass = 'expired-message';
+                timerDisplay = '<span class="message-timer expired">Gone</span>';
+            }
+        }
         
         return `
-            <div class="message-group ${isCurrentUser ? 'own-message' : ''}">
+            <div class="message-group ${isCurrentUser ? 'own-message' : ''} ${messageClass}" data-timestamp="${m.timestamp || 0}">
                 <div class="message-header">
                     <div class="message-avatar">${init}</div>
                     <span class="message-author">${m.author}</span>
                     <span class="message-time">${m.time}</span>
+                    ${timerDisplay}
                 </div>
                 <div class="message-content">${m.content}</div>
                 ${m.media && m.media.length > 0 ? `
@@ -311,17 +338,21 @@ function renderMessages(room) {
         `;
     }).join('');
     
-    console.log('Generated HTML length:', html.length);
-    
-    // Set the HTML
     el.innerHTML = html;
     
-    console.log('DOM updated');
+    if (hasTimer) {
+        const messageElements = el.querySelectorAll('.message-group');
+        messageElements.forEach(msgEl => {
+            const timestamp = parseInt(msgEl.dataset.timestamp);
+            if (timestamp) {
+                const expiresAt = timestamp + timerMs;
+                if (expiresAt > now) startMessageTimer(msgEl, expiresAt);
+            }
+        });
+    }
     
-    // Scroll to bottom
     requestAnimationFrame(() => {
         el.scrollTop = el.scrollHeight;
-        console.log('Scrolled to bottom');
     });
 }
 
@@ -329,39 +360,22 @@ function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     
-    console.log('=== SEND MESSAGE ===');
-    console.log('Text:', text);
-    console.log('Room ID:', currentRoomId);
-    console.log('Author:', currentUser);
+    if (!text || !currentRoomId) return;
     
-    if (!text || !currentRoomId) {
-        console.log('ABORT: No text or room');
-        return;
-    }
-    
-    // Get FRESH data
-    console.log('Loading fresh rooms...');
     rooms = storage.get('rooms') || [];
-    console.log('Loaded rooms:', rooms.length);
-    
     const roomIndex = rooms.findIndex(r => r.id === currentRoomId);
-    console.log('Room index:', roomIndex);
-    
     if (roomIndex === -1) {
-        console.error('Room not found!');
         alert('Error: Room not found. Please refresh.');
         return;
     }
     
     const room = rooms[roomIndex];
-    console.log('Found room:', room.name);
-    
-    if (!room.messages) {
-        room.messages = [];
-        console.log('Initialized messages array');
+    if (!checkCanSendMessage(room)) {
+        alert("This room is just for listening right now.");
+        return;
     }
     
-    console.log('Current messages:', room.messages.length);
+    if (!room.messages) room.messages = [];
     
     const message = { 
         author: currentUser, 
@@ -371,53 +385,19 @@ function sendMessage() {
         media: []
     };
     
-    console.log('Created message:', message);
-    
     room.messages.push(message);
-    console.log('Added message. New count:', room.messages.length);
-    
     rooms[roomIndex] = room;
-    
-    console.log('Saving...');
     save();
-    
-    // VERIFY
-    const verification = storage.get('rooms');
-    const verifiedRoom = verification.find(r => r.id === currentRoomId);
-    console.log('VERIFIED messages count:', verifiedRoom ? verifiedRoom.messages.length : 'NOT FOUND');
-    
-    if (!verifiedRoom || verifiedRoom.messages.length !== room.messages.length) {
-        console.error('SAVE FAILED!');
-        alert('Error: Message not saved. Try again.');
-        return;
-    }
-    
-    console.log('✓ Save verified');
     
     input.value = '';
     
-    // Force a complete re-render with fresh data
-    console.log('Re-rendering messages...');
-    
-    // Get completely fresh data from localStorage
     const freshRooms = storage.get('rooms') || [];
     const freshRoom = freshRooms.find(r => r.id === currentRoomId);
-    
-    if (!freshRoom) {
-        console.error('Could not find fresh room data!');
-        return;
+    if (freshRoom) {
+        const el = document.getElementById('messagesContainer');
+        el.innerHTML = '';
+        renderMessages(freshRoom);
     }
-    
-    console.log('Fresh room has', freshRoom.messages.length, 'messages');
-    
-    // Clear the container first
-    const el = document.getElementById('messagesContainer');
-    el.innerHTML = '';
-    
-    // Then render fresh messages
-    renderMessages(freshRoom);
-    
-    console.log('=== SEND COMPLETE ===');
 }
 
 function formatTime(date) {
@@ -431,17 +411,12 @@ function formatTime(date) {
 
 function joinRoom(evt, id) {
     evt.stopPropagation();
-    
     rooms = storage.get('rooms') || [];
-    
     const roomIndex = rooms.findIndex(r => r.id === id);
     if (roomIndex === -1) return;
     
     const room = rooms[roomIndex];
-    
-    if (!room.members) {
-        room.members = [];
-    }
+    if (!room.members) room.members = [];
     
     if (!room.members.includes(currentUser)) {
         room.members.push(currentUser);
@@ -449,7 +424,7 @@ function joinRoom(evt, id) {
         save();
         renderJoined();
         renderAvailable();
-        showNotification(`You've quietly joined "${room.name}"`);
+        showNotification(`You're in!`);
     }
 }
 
@@ -457,9 +432,11 @@ function createNewRoom() {
     const name = document.getElementById('newRoomName').value.trim();
     const desc = document.getElementById('newRoomDescription').value.trim();
     const limit = parseInt(document.getElementById('newRoomLimit').value) || 8;
+    const roomType = document.getElementById('newRoomType').value || 'open';
+    const messageTimer = document.getElementById('newMessageTimer').value || 'none';
     
     if (!name || !desc) { 
-        alert('Please fill all fields'); 
+        alert('Fill everything out first'); 
         return; 
     }
     
@@ -472,18 +449,17 @@ function createNewRoom() {
         members: [currentUser],
         limit: Math.max(2, Math.min(12, limit)),
         creator: currentUser,
-        messages: []
+        messages: [],
+        roomType: roomType,
+        messageTimer: messageTimer
     };
-    
-    console.log('Creating room:', newRoom);
     
     rooms.push(newRoom);
     save();
     closeCreateRoom();
     renderJoined();
     renderAvailable();
-    
-    showNotification(`"${name}" has been created`);
+    showNotification(`Your room is ready`);
 }
 
 function closeCreateRoom() {
@@ -491,23 +467,54 @@ function closeCreateRoom() {
     document.getElementById('newRoomName').value = '';
     document.getElementById('newRoomDescription').value = '';
     document.getElementById('newRoomLimit').value = '8';
+    document.getElementById('newRoomType').value = 'open';
+    document.getElementById('newMessageTimer').value = 'none';
 }
+
+function openRoomSettings() {
+    if (!currentRoomId) return;
+    rooms = storage.get('rooms') || [];
+    const room = rooms.find(r => r.id === currentRoomId);
+    
+    if (!room || room.creator !== currentUser) {
+        alert('Only you can change your room.');
+        return;
+    }
+    
+    document.getElementById('settingsRoomType').value = room.roomType || 'open';
+    document.getElementById('settingsMessageTimer').value = room.messageTimer || 'none';
+    document.getElementById('roomSettingsModal').style.display = 'flex';
+}
+
+function closeRoomSettings() {
+    document.getElementById('roomSettingsModal').style.display = 'none';
+}
+
+window.saveRoomSettings = function() {
+    if (!currentRoomId) return;
+    rooms = storage.get('rooms') || [];
+    const roomIndex = rooms.findIndex(r => r.id === currentRoomId);
+    if (roomIndex === -1) return;
+    
+    const room = rooms[roomIndex];
+    if (room.creator !== currentUser) {
+        alert('Only the person who made this room can change it.');
+        return;
+    }
+    
+    room.roomType = document.getElementById('settingsRoomType').value;
+    room.messageTimer = document.getElementById('settingsMessageTimer').value;
+    rooms[roomIndex] = room;
+    save();
+    
+    closeRoomSettings();
+    showNotification('All set');
+    openRoom(currentRoomId);
+};
 
 function showNotification(msg) {
     const el = document.createElement('div');
-    el.style.cssText = `
-        position: fixed;
-        top: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1C1C1C;
-        color: #E6E6E6;
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-        z-index: 3000;
-        border-left: 4px solid #7FAF96;
-    `;
+    el.style.cssText = `position:fixed;top:100px;left:50%;transform:translateX(-50%);background:#1C1C1C;color:#E6E6E6;padding:1rem 2rem;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.3);z-index:3000;border-left:4px solid #7FAF96;`;
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => {
@@ -518,7 +525,6 @@ function showNotification(msg) {
 function loadSettings() {
     const settingsOverlay = document.getElementById('settingsOverlay');
     const themeRadios = settingsOverlay.querySelectorAll('input[name="theme"]');
-    
     themeRadios.forEach(radio => radio.checked = false);
     
     if (settings.theme === 'light') {
@@ -563,7 +569,7 @@ window.saveSettings = function() {
     
     storage.set('settings', settings);
     closeSettings();
-    showNotification('Settings saved');
+    showNotification('Got it');
 };
 
 function openSettings() {
@@ -600,9 +606,9 @@ function formatTimeAgo(timestamp) {
     const days = Math.floor(diff / 86400000);
     
     if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes} min ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
+    if (minutes < 60) return `${minutes} min`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
     return new Date(timestamp).toLocaleDateString();
 }
 
@@ -711,12 +717,12 @@ function handleMediaSelect(event) {
     const existingVideo = selectedMedia.some(m => m.type === 'video');
     
     if (hasVideo && (existingVideo || selectedMedia.length > 0)) {
-        alert('You can only upload one video, or multiple images (not both)');
+        alert('Pick one video OR up to 4 photos (not both)');
         return;
     }
     
     if (existingVideo && files.length > 0) {
-        alert('You can only upload one video at a time');
+        alert('Just one video');
         return;
     }
     
@@ -728,7 +734,7 @@ function handleMediaSelect(event) {
             if (currentImages < MAX_IMAGES && selectedMedia.length < MAX_IMAGES) {
                 processMediaFile(file);
             } else {
-                alert(`Max ${MAX_IMAGES} images`);
+                alert('Only 4 photos');
             }
         }
     });
@@ -782,13 +788,13 @@ window.createPost = function() {
     const roomId = document.getElementById('postRoomSelect').value;
     
     if (!content && !selectedMedia.length) {
-        alert('Please share a thought or add media');
+        alert('Say something or add a photo first');
         return;
     }
     
     rooms = storage.get('rooms') || [];
     feedPosts = storage.get('feedPosts') || [];
-    
+        
     if (roomId) {
         const roomIndex = rooms.findIndex(r => r.id == roomId);
         if (roomIndex !== -1) {
@@ -809,10 +815,11 @@ window.createPost = function() {
             media: [...selectedMedia]
         });
     }
-    
+        
     save();
     closeCreatePost();
-    showNotification('Thought shared quietly');
+    showNotification('Shared');
 };
 
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
