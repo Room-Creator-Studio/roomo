@@ -19,17 +19,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ROOM">
 <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-
-<!-- PWA: Register the service worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(reg => console.log('ROOM SW registered:', reg.scope))
-        .catch(err => console.warn('ROOM SW failed:', err));
-    });
-  }
-</script>
 </head>
 <body>
     <header class="header">
@@ -305,8 +294,18 @@
             </div>
         </div>
     </div>
-
+    <!-- PWA: Register the service worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('ROOM SW registered:', reg.scope))
+            .catch(err => console.warn('ROOM SW failed:', err));
+        });
+      }
+    </script>
     <script src="home.js"></script>
     <script src="security.js"></script>
 </body>
+
 </html>
