@@ -8,6 +8,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="Rooms.svg">
     <link rel="stylesheet" href="home.css">
+    <!-- PWA: Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- PWA: Theme color (top bar on Android) -->
+<meta name="theme-color" content="#121212">
+
+<!-- PWA: iOS specific tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ROOM">
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+<!-- PWA: Register the service worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('ROOM SW registered:', reg.scope))
+        .catch(err => console.warn('ROOM SW failed:', err));
+    });
+  }
+</script>
 </head>
 <body>
     <header class="header">

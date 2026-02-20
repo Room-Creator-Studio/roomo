@@ -103,7 +103,7 @@ loginForm.addEventListener('submit', (e) => {
     if (account && account.password === password) {
         // CRITICAL: Use sessionStorage for current session (per-tab)
         sessionStorage.setItem('currentSessionUser', account.name);
-        sessionStorage.setItem('currentSessionEmail', account.email);
+        sessionStorage.setItem('currentSessionEmail', email);
         
         console.log('✓ Login successful');
         console.log('Session user:', account.name);
@@ -157,8 +157,8 @@ signupForm.addEventListener('submit', (e) => {
     sessionStorage.setItem('currentSessionEmail', email);
 
     console.log('✓ Signup successful');
-    console.log('Session user:', name || 'You');
-    console.log('Session email:', email);
+    sessionStorage.setItem('currentSessionUser', name || 'You');
+    sessionStorage.setItem('currentSessionEmail', email);
     
     alert('Account created successfully');
     window.location.href = "homev1.html";
