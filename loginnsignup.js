@@ -1,3 +1,24 @@
+// =========================================
+// ROOM - LOGIN & SIGNUP
+// Migrated to Firebase for user management
+// =========================================
+
+import { db, auth } from './firebase/firebase.js';
+import {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import {
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    query,
+    where,
+    getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
 const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
 const tagline = document.getElementById('tagline');
@@ -37,59 +58,42 @@ function togglePasswordVisibility(id) {
     }
 }
 
-// Storage helper
-const storage = {
-    get: (k) => {
-        try {
-            const d = localStorage.getItem(k);
-            return d ? JSON.parse(d) : null;
-        } catch {
-            return null;
+// Initialize creator account in Firestore
+async function initializeCreatorAccount() {
+    try {
+        const creatorEmail = 'harki.amrik@gmail.com';
+        const creatorUsername = 'Creator-Of-Room';
+        
+        const userDoc = await getDoc(doc(db, 'users', creatorEmail));
+        
+        if (!userDoc.exists()) {
+            // Store creator account in Firestore
+            await setDoc(doc(db, 'users', creatorEmail), {
+                name: creatorUsername,
+                email: creatorEmail,
+                isCreator: true,
+                createdAt: new Date().toISOString(),
+                settings: {
+                    theme: 'dark',
+                    reduceAnimations: false,
+                    quietMode: false,
+                    onlyImportantUpdates: true,
+                    appearInvisible: false,
+                    hideActivityStatus: false
+                }
+            });
+            console.log('Creator account initialized in Firestore');
         }
-    },
-    set: (k, v) => {
-        try {
-            localStorage.setItem(k, JSON.stringify(v));
-        } catch {}
-    },
-    remove: (k) => {
-        try {
-            localStorage.removeItem(k);
-        } catch {}
-    },
-    clear: () => {
-        try {
-            localStorage.clear();
-        } catch {}
-    }
-};
-
-// Pre-register Creator account
-function initializeCreatorAccount() {
-    const creatorEmail = 'harki.amrik@gmail.com';
-    const creatorUsername = 'Creator-Of-Room';
-    const creatorPassword = 'ijokpluh0908';
-    
-    let accounts = storage.get('accounts') || {};
-    
-    if (!accounts[creatorEmail]) {
-        accounts[creatorEmail] = {
-            name: creatorUsername,
-            email: creatorEmail,
-            password: creatorPassword,
-            isCreator: true,
-            createdAt: new Date().toISOString()
-        };
-        storage.set('accounts', accounts);
-        console.log('Creator account initialized');
+    } catch (error) {
+        console.error('Error initializing creator account:', error);
     }
 }
 
 // Initialize on page load
-initializeCreatorAccount();
+document.addEventListener('DOMContentLoaded', initializeCreatorAccount);
 
 // Login Form
-loginForm.addEventListener('submit', (e) => {
+loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -97,28 +101,39 @@ loginForm.addEventListener('submit', (e) => {
     console.log('=== LOGIN ATTEMPT ===');
     console.log('Email:', email);
     
-    const accounts = storage.get('accounts') || {};
-    const account = accounts[email];
-    
-    if (account && account.password === password) {
-        // CRITICAL: Use sessionStorage for current session (per-tab)
-        sessionStorage.setItem('currentSessionUser', account.name);
-        sessionStorage.setItem('currentSessionEmail', email);
+    try {
+        // Sign in with Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
         
-        console.log('✓ Login successful');
-        console.log('Session user:', account.name);
-        console.log('Session email:', account.email);
+        // Get user profile from Firestore
+        const userDoc = await getDoc(doc(db, 'users', email));
         
-        alert('Login successful');
-        window.location.href = "home.html";
-    } else {
-        console.log('✗ Invalid credentials');
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            // Store in sessionStorage for current session (temporary, in-memory state)
+            sessionStorage.setItem('currentSessionUser', userData.name);
+            sessionStorage.setItem('currentSessionEmail', email);
+            sessionStorage.setItem('currentSessionUid', user.uid);
+            
+            console.log('✓ Login successful');
+            console.log('Session user:', userData.name);
+            console.log('Session email:', email);
+            
+            alert('Login successful');
+            window.location.href = "home.html";
+        } else {
+            throw new Error('User profile not found');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
         alert('Invalid email or password');
     }
 });
 
 // Signup Form
-signupForm.addEventListener('submit', (e) => {
+signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('signupName').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
@@ -129,39 +144,59 @@ signupForm.addEventListener('submit', (e) => {
         alert("Passwords do not match");
         return;
     }
+    
+    if (!name) {
+        alert("Please enter your name");
+        return;
+    }
 
     console.log('=== SIGNUP ATTEMPT ===');
     console.log('Name:', name);
     console.log('Email:', email);
 
-    let accounts = storage.get('accounts') || {};
-    
-    if (accounts[email]) {
-        alert('An account with this email already exists. Please login instead.');
-        showForm('login');
-        return;
+    try {
+        // Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Store user profile in Firestore
+        await setDoc(doc(db, 'users', email), {
+            name: name || 'You',
+            email: email,
+            isCreator: false,
+            createdAt: new Date().toISOString(),
+            settings: {
+                theme: 'dark',
+                reduceAnimations: false,
+                quietMode: false,
+                onlyImportantUpdates: true,
+                appearInvisible: false,
+                hideActivityStatus: false
+            }
+        });
+        
+        // Store in sessionStorage for current session
+        sessionStorage.setItem('currentSessionUser', name || 'You');
+        sessionStorage.setItem('currentSessionEmail', email);
+        sessionStorage.setItem('currentSessionUid', user.uid);
+
+        console.log('✓ Signup successful');
+        
+        alert('Account created successfully');
+        window.location.href = "home.html";
+    } catch (error) {
+        console.error('Signup error:', error);
+        
+        // Handle specific Firebase errors
+        if (error.code === 'auth/email-already-in-use') {
+            alert('An account with this email already exists. Please login instead.');
+            showForm('login');
+        } else if (error.code === 'auth/weak-password') {
+            alert('Password is too weak. Please use a stronger password.');
+        } else {
+            alert('Error creating account: ' + error.message);
+        }
     }
-
-    // Create new account
-    accounts[email] = {
-        name: name || 'You',
-        email: email,
-        password: password,
-        isCreator: false,
-        createdAt: new Date().toISOString()
-    };
-    storage.set('accounts', accounts);
-
-    // CRITICAL: Use sessionStorage for current session
-    sessionStorage.setItem('currentSessionUser', name || 'You');
-    sessionStorage.setItem('currentSessionEmail', email);
-
-    console.log('✓ Signup successful');
-    sessionStorage.setItem('currentSessionUser', name || 'You');
-    sessionStorage.setItem('currentSessionEmail', email);
-    
-    alert('Account created successfully');
-    window.location.href = "homev1.html";
 });
 
 // Input micro-interactions

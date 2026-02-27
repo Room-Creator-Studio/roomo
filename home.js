@@ -1,25 +1,28 @@
-// Storage helper with localStorage
-const storage = {
-    get: (k) => {
-        try {
-            const d = localStorage.getItem(k);
-            return d ? JSON.parse(d) : null;
-        } catch {
-            return null;
-        }
-    },
-    set: (k, v) => {
-        try {
-            localStorage.setItem(k, JSON.stringify(v));
-        } catch (e) {
-            console.error('Storage error:', e);
-        }
-    }
-};
+// =========================================
+// ROOM - HOME PAGE
+// Migrated to Firebase for data persistence
+// =========================================
 
-// Session check
+import { db, auth } from './firebase/firebase.js';
+import {
+    collection,
+    doc,
+    getDocs,
+    getDoc,
+    setDoc,
+    updateDoc,
+    addDoc,
+    query,
+    where,
+    onSnapshot,
+    arrayUnion,
+    arrayRemove
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+// Session data (temporary, in-memory only)
 const sessionUser = sessionStorage.getItem('currentSessionUser');
 const sessionEmail = sessionStorage.getItem('currentSessionEmail');
+const sessionUid = sessionStorage.getItem('currentSessionUid');
 
 if (!sessionUser || !sessionEmail) {
     window.location.href = 'loginnsignup.html';
@@ -28,12 +31,14 @@ if (!sessionUser || !sessionEmail) {
 
 const currentUser = sessionUser;
 const currentEmail = sessionEmail;
-const accounts = storage.get('accounts') || {};
-const userAccount = accounts[currentEmail] || {};
-const isCreator = userAccount.isCreator || currentEmail === 'harki.amrik@gmail.com';
+const currentUid = sessionUid;
 
-let rooms = storage.get('rooms') || [];
-let settings = storage.get('settings') || {
+// Determine if user is creator
+const isCreator = currentEmail === 'harki.amrik@gmail.com';
+
+// App state
+let rooms = [];
+let settings = {
     theme: 'dark',
     reduceAnimations: false,
     quietMode: false,
@@ -41,75 +46,199 @@ let settings = storage.get('settings') || {
     appearInvisible: false,
     hideActivityStatus: false
 };
-let feedPosts = storage.get('feedPosts') || [];
+let feedPosts = [];
 let currentRoomId = null;
 let selectedMedia = [];
 const MAX_IMAGES = 4;
 
-function save() { 
-    storage.set('rooms', rooms);
-    storage.set('settings', settings);
-    storage.set('feedPosts', feedPosts);
+// Real-time listeners
+let roomsUnsubscribe = null;
+let currentRoomUnsubscribe = null;
+
+// Load user settings from Firestore
+async function loadUserSettings() {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', currentEmail));
+        if (userDoc.exists() && userDoc.data().settings) {
+            settings = { ...settings, ...userDoc.data().settings };
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
 }
 
-window.resetEverything = function() {
-    if (!isCreator) {
-        alert('Only the Creator account can reset everything.');
-        return;
+// Save settings to Firestore
+async function saveSettingsToFirestore() {
+    try {
+        await updateDoc(doc(db, 'users', currentEmail), {
+            settings: settings
+        });
+    } catch (error) {
+        console.error('Error saving settings:', error);
     }
-    if (confirm('Are you sure you want to reset everything?')) {
-        const creatorAccount = accounts['harki.amrik@gmail.com'];
-        localStorage.clear();
-        sessionStorage.clear();
-        if (creatorAccount) storage.set('accounts', { 'harki.amrik@gmail.com': creatorAccount });
-        alert('Everything has been reset.');
-        window.location.href = 'loginnsignup.html';
-    }
-};
+}
 
-function init() {
-    renderJoined();
-    renderAvailable();
-    loadSettings();
-    checkCreatorAccess();
+// Load rooms from Firestore with real-time updates
+function setupRoomsListener() {
+    try {
+        const q = query(collection(db, 'rooms'));
+        
+        roomsUnsubscribe = onSnapshot(q, (snapshot) => {
+            rooms = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            renderJoined();
+            renderAvailable();
+        });
+    } catch (error) {
+        console.error('Error setting up rooms listener:', error);
+    }
+}
+
+// Load feed posts from Firestore
+async function loadFeedPosts() {
+    try {
+        const snapshot = await getDocs(collection(db, 'feedPosts'));
+        feedPosts = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error('Error loading feed posts:', error);
+    }
+}
+
+// Create a new room in Firestore
+async function createNewRoom() {
+    const name = document.getElementById('newRoomName').value.trim();
+    const desc = document.getElementById('newRoomDescription').value.trim();
+    const limit = parseInt(document.getElementById('newRoomLimit').value) || 8;
+    const roomType = document.getElementById('newRoomType').value || 'open';
+    const messageTimer = document.getElementById('newMessageTimer').value || 'none';
     
-    document.getElementById('createRoomBtn').onclick = () => document.getElementById('createRoomPage').style.display = 'block';
-    document.getElementById('profileBtn').onclick = openSettings;
-    document.getElementById('feedBtn').onclick = openFeed;
-    document.getElementById('createPostBtn').onclick = openCreatePost;
-    document.getElementById('sendBtn').onclick = sendMessage;
+    if (!name || !desc) { 
+        alert('Fill everything out first'); 
+        return; 
+    }
+    
+    try {
+        const newRoom = {
+            name: name,
+            description: desc,
+            members: [currentUser],
+            limit: Math.max(2, Math.min(12, limit)),
+            creator: currentUser,
+            roomType: roomType,
+            messageTimer: messageTimer,
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser
+        };
+        
+        const docRef = await addDoc(collection(db, 'rooms'), newRoom);
+        
+        closeCreateRoom();
+        showNotification(`Your room is ready`);
+    } catch (error) {
+        console.error('Error creating room:', error);
+        alert('Failed to create room');
+    }
+}
+
+function closeCreateRoom() {
+    document.getElementById('createRoomPage').style.display = 'none';
+    document.getElementById('newRoomName').value = '';
+    document.getElementById('newRoomDescription').value = '';
+    document.getElementById('newRoomLimit').value = '8';
+    document.getElementById('newRoomType').value = 'open';
+    document.getElementById('newMessageTimer').value = 'none';
+}
+
+// Join a room
+async function joinRoom(evt, id) {
+    evt.stopPropagation();
+    
+    try {
+        const roomRef = doc(db, 'rooms', id);
+        const roomDoc = await getDoc(roomRef);
+        
+        if (!roomDoc.exists()) return;
+        
+        const room = roomDoc.data();
+        if (!room.members || !room.members.includes(currentUser)) {
+            await updateDoc(roomRef, {
+                members: arrayUnion(currentUser)
+            });
+            showNotification(`You're in!`);
+        }
+    } catch (error) {
+        console.error('Error joining room:', error);
+    }
+}
+
+// Leave a room
+async function leaveRoom(roomId) {
+    try {
+        const roomRef = doc(db, 'rooms', roomId);
+        await updateDoc(roomRef, {
+            members: arrayRemove(currentUser)
+        });
+    } catch (error) {
+        console.error('Error leaving room:', error);
+    }
+}
+
+// Send a message to current room
+async function sendMessage() {
+    if (!currentRoomId) return;
     
     const messageInput = document.getElementById('messageInput');
-    messageInput.onkeypress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { 
-            e.preventDefault(); 
-            sendMessage(); 
+    const content = messageInput.value.trim();
+    
+    if (!content && selectedMedia.length === 0) return;
+    
+    try {
+        const roomRef = doc(db, 'rooms', currentRoomId);
+        const roomDoc = await getDoc(roomRef);
+        
+        if (!roomDoc.exists()) return;
+        
+        const room = roomDoc.data();
+        
+        // Check permissions
+        if (!checkCanSendMessage(room)) {
+            alert('You cannot send messages in this room');
+            return;
         }
-    };
-    
-    document.getElementById('postContent').oninput = (e) => {
-        document.getElementById('postCharCount').textContent = e.target.value.length;
-    };
-    
-    document.getElementById('mediaInput').onchange = handleMediaSelect;
-    document.getElementById('createPostModal').onclick = (e) => {
-        if (e.target.id === 'createPostModal') closeCreatePost();
-    };
-    document.getElementById('settingsOverlay').onclick = (e) => {
-        if (e.target.id === 'settingsOverlay') closeSettings();
-    };
-    document.getElementById('roomSettingsModal').onclick = (e) => {
-        if (e.target.id === 'roomSettingsModal') closeRoomSettings();
-    };
+        
+        const message = {
+            author: currentUser,
+            content: content,
+            timestamp: new Date().toISOString(),
+            media: [...selectedMedia]
+        };
+        
+        // Add message to subcollection
+        await addDoc(collection(db, 'rooms', currentRoomId, 'messages'), message);
+        
+        messageInput.value = '';
+        selectedMedia = [];
+        updateMediaPreview();
+    } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message');
+    }
 }
 
-function checkCreatorAccess() {
-    const resetSection = document.getElementById('resetSection');
-    if (resetSection) resetSection.style.display = isCreator ? 'block' : 'none';
+function checkCanSendMessage(room) {
+    if (room.roomType === 'no-text') return false;
+    if (room.roomType === 'creator-only' && room.creator !== currentUser) return false;
+    return true;
 }
 
+// Render rooms user has joined
 function renderJoined() {
-    rooms = storage.get('rooms') || [];
     const joined = rooms.filter(r => r.members && r.members.includes(currentUser));
     const el = document.getElementById('joinedRoomsContainer');
     const empty = document.getElementById('emptyState');
@@ -125,7 +254,7 @@ function renderJoined() {
         const roomTypeLabel = r.roomType === 'creator-only' ? 'Your voice' : 
                              r.roomType === 'no-text' ? 'Quiet space' : 'Open hearts';
         return `
-        <div class="room-card joined" onclick="openRoom(${r.id})">
+        <div class="room-card joined" onclick="openRoom('${r.id}')">
             <h3 class="room-name">${r.name}</h3>
             <p class="room-description">${r.description}</p>
             <div class="room-meta">
@@ -140,8 +269,8 @@ function renderJoined() {
     }).join('');
 }
 
+// Render available rooms to join
 function renderAvailable() {
-    rooms = storage.get('rooms') || [];
     const available = rooms.filter(r => !r.members || !r.members.includes(currentUser));
     const container = document.getElementById('availableRoomsContainer');
     const empty = document.getElementById('availableEmptyState');
@@ -167,7 +296,7 @@ function renderAvailable() {
                 </div>
                 <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
                     <span class="room-type-badge">${roomTypeLabel}</span>
-                    <button class="join-btn" onclick="joinRoom(event, ${r.id})">
+                    <button class="join-btn" onclick="joinRoom(event, '${r.id}')">
                         <i class="fas fa-door-open"></i> Join Quietly
                     </button>
                 </div>
@@ -177,60 +306,8 @@ function renderAvailable() {
     }).join('');
 }
 
-function checkCanSendMessage(room) {
-    if (room.roomType === 'no-text') return false;
-    if (room.roomType === 'creator-only' && room.creator !== currentUser) return false;
-    return true;
-}
-
-function cleanExpiredMessages(room) {
-    if (!room.messages || !room.messageTimer || room.messageTimer === 'none') return;
-    const now = Date.now();
-    const timerMs = parseInt(room.messageTimer) * 60 * 1000;
-    
-    let changed = false;
-    room.messages = room.messages.filter(msg => {
-        if (!msg.timestamp) return true;
-        if (now - msg.timestamp >= timerMs) {
-            changed = true;
-            return false;
-        }
-        return true;
-    });
-    
-    if (changed) {
-        rooms = storage.get('rooms') || [];
-        const roomIndex = rooms.findIndex(r => r.id === room.id);
-        if (roomIndex !== -1) {
-            rooms[roomIndex] = room;
-            save();
-        }
-    }
-}
-
-function startMessageTimer(messageElement, expiresAt) {
-    const updateTimer = () => {
-        const now = Date.now();
-        const remaining = expiresAt - now;
-        
-        if (remaining <= 0) {
-            messageElement.style.opacity = '0.3';
-            const timerEl = messageElement.querySelector('.message-timer');
-            if (timerEl) timerEl.textContent = 'Gone';
-            return;
-        }
-        
-        const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-        const timerEl = messageElement.querySelector('.message-timer');
-        if (timerEl) timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        setTimeout(updateTimer, 1000);
-    };
-    updateTimer();
-}
-
-function openRoom(id) {
-    rooms = storage.get('rooms') || [];
+// Open a room and load messages
+async function openRoom(id) {
     currentRoomId = id;
     const room = rooms.find(r => r.id === id);
     if (!room) return;
@@ -258,6 +335,7 @@ function openRoom(id) {
         document.getElementById('messageInput').placeholder = 'Share your thoughts gently...';
     }
     
+    // Display members
     document.getElementById('membersList').innerHTML = room.members.map(m => {
         const init = m.split(' ').map(n => n[0]).join('').toUpperCase();
         const isRoomCreator = m === room.creator;
@@ -271,56 +349,52 @@ function openRoom(id) {
         `;
     }).join('');
     
-    cleanExpiredMessages(room);
-    renderMessages(room);
+    // Load and render messages
+    await loadAndRenderMessages(id);
+    
     document.getElementById('roomViewPage').style.display = 'block';
 }
 
-function closeRoomView() {
-    document.getElementById('roomViewPage').style.display = 'none';
-    currentRoomId = null;
+// Load messages from Firestore
+async function loadAndRenderMessages(roomId) {
+    try {
+        const snapshot = await getDocs(collection(db, 'rooms', roomId, 'messages'));
+        const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        // Sort by timestamp
+        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        renderMessages(messages);
+    } catch (error) {
+        console.error('Error loading messages:', error);
+    }
 }
 
-function renderMessages(room) {
+// Render messages in current room
+function renderMessages(messages) {
     const el = document.getElementById('messagesContainer');
     
-    if (!room.messages || room.messages.length === 0) {
+    if (!messages || messages.length === 0) {
         el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><h3>Nobody\'s said anything yet. Break the ice?</h3><p>Start whenever you feel like it</p></div>';
         return;
     }
     
-    const hasTimer = room.messageTimer && room.messageTimer !== 'none';
-    const timerMs = hasTimer ? parseInt(room.messageTimer) * 60 * 1000 : 0;
-    const now = Date.now();
-    
-    const html = room.messages.map((m) => {
+    const html = messages.map((m) => {
         const init = m.author.split(' ').map(n => n[0]).join('').toUpperCase();
         const isCurrentUser = m.author === currentUser;
         
-        let timerDisplay = '';
-        let messageClass = '';
-        
-        if (hasTimer && m.timestamp) {
-            const expiresAt = m.timestamp + timerMs;
-            const remaining = expiresAt - now;
-            
-            if (remaining > 0) {
-                const minutes = Math.floor(remaining / 60000);
-                const seconds = Math.floor((remaining % 60000) / 1000);
-                timerDisplay = `<span class="message-timer"><i class="fas fa-clock"></i> ${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
-            } else {
-                messageClass = 'expired-message';
-                timerDisplay = '<span class="message-timer expired">Gone</span>';
-            }
-        }
+        const date = new Date(m.timestamp);
+        const time = formatTime(date);
         
         return `
-            <div class="message-group ${isCurrentUser ? 'own-message' : ''} ${messageClass}" data-timestamp="${m.timestamp || 0}">
+            <div class="message-group ${isCurrentUser ? 'own-message' : ''}">
                 <div class="message-header">
                     <div class="message-avatar">${init}</div>
                     <span class="message-author">${m.author}</span>
-                    <span class="message-time">${m.time}</span>
-                    ${timerDisplay}
+                    <span class="message-time">${time}</span>
                 </div>
                 <div class="message-content">${m.content}</div>
                 ${m.media && m.media.length > 0 ? `
@@ -339,65 +413,6 @@ function renderMessages(room) {
     }).join('');
     
     el.innerHTML = html;
-    
-    if (hasTimer) {
-        const messageElements = el.querySelectorAll('.message-group');
-        messageElements.forEach(msgEl => {
-            const timestamp = parseInt(msgEl.dataset.timestamp);
-            if (timestamp) {
-                const expiresAt = timestamp + timerMs;
-                if (expiresAt > now) startMessageTimer(msgEl, expiresAt);
-            }
-        });
-    }
-    
-    requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-    });
-}
-
-function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    
-    if (!text || !currentRoomId) return;
-    
-    rooms = storage.get('rooms') || [];
-    const roomIndex = rooms.findIndex(r => r.id === currentRoomId);
-    if (roomIndex === -1) {
-        alert('Error: Room not found. Please refresh.');
-        return;
-    }
-    
-    const room = rooms[roomIndex];
-    if (!checkCanSendMessage(room)) {
-        alert("This room is just for listening right now.");
-        return;
-    }
-    
-    if (!room.messages) room.messages = [];
-    
-    const message = { 
-        author: currentUser, 
-        content: text, 
-        time: formatTime(new Date()),
-        timestamp: Date.now(),
-        media: []
-    };
-    
-    room.messages.push(message);
-    rooms[roomIndex] = room;
-    save();
-    
-    input.value = '';
-    
-    const freshRooms = storage.get('rooms') || [];
-    const freshRoom = freshRooms.find(r => r.id === currentRoomId);
-    if (freshRoom) {
-        const el = document.getElementById('messagesContainer');
-        el.innerHTML = '';
-        renderMessages(freshRoom);
-    }
 }
 
 function formatTime(date) {
@@ -409,71 +424,14 @@ function formatTime(date) {
     return `${displayHours}:${displayMinutes} ${ampm}`;
 }
 
-function joinRoom(evt, id) {
-    evt.stopPropagation();
-    rooms = storage.get('rooms') || [];
-    const roomIndex = rooms.findIndex(r => r.id === id);
-    if (roomIndex === -1) return;
-    
-    const room = rooms[roomIndex];
-    if (!room.members) room.members = [];
-    
-    if (!room.members.includes(currentUser)) {
-        room.members.push(currentUser);
-        rooms[roomIndex] = room;
-        save();
-        renderJoined();
-        renderAvailable();
-        showNotification(`You're in!`);
-    }
+function closeRoomView() {
+    document.getElementById('roomViewPage').style.display = 'none';
+    currentRoomId = null;
 }
 
-function createNewRoom() {
-    const name = document.getElementById('newRoomName').value.trim();
-    const desc = document.getElementById('newRoomDescription').value.trim();
-    const limit = parseInt(document.getElementById('newRoomLimit').value) || 8;
-    const roomType = document.getElementById('newRoomType').value || 'open';
-    const messageTimer = document.getElementById('newMessageTimer').value || 'none';
-    
-    if (!name || !desc) { 
-        alert('Fill everything out first'); 
-        return; 
-    }
-    
-    rooms = storage.get('rooms') || [];
-    
-    const newRoom = {
-        id: Date.now(),
-        name, 
-        description: desc,
-        members: [currentUser],
-        limit: Math.max(2, Math.min(12, limit)),
-        creator: currentUser,
-        messages: [],
-        roomType: roomType,
-        messageTimer: messageTimer
-    };
-    
-    rooms.push(newRoom);
-    save();
-    closeCreateRoom();
-    renderJoined();
-    renderAvailable();
-    showNotification(`Your room is ready`);
-}
-
-function closeCreateRoom() {
-    document.getElementById('createRoomPage').style.display = 'none';
-    document.getElementById('newRoomName').value = '';
-    document.getElementById('newRoomDescription').value = '';
-    document.getElementById('newRoomLimit').value = '8';
-    document.getElementById('newRoomType').value = 'open';
-    document.getElementById('newMessageTimer').value = 'none';
-}
-
+// Room settings
 function openRoomSettings() {
     if (!currentRoomId) return;
-    rooms = storage.get('rooms') || [];
     const room = rooms.find(r => r.id === currentRoomId);
     
     if (!room || room.creator !== currentUser) {
@@ -490,26 +448,26 @@ function closeRoomSettings() {
     document.getElementById('roomSettingsModal').style.display = 'none';
 }
 
-window.saveRoomSettings = function() {
+window.saveRoomSettings = async function() {
     if (!currentRoomId) return;
-    rooms = storage.get('rooms') || [];
-    const roomIndex = rooms.findIndex(r => r.id === currentRoomId);
-    if (roomIndex === -1) return;
     
-    const room = rooms[roomIndex];
-    if (room.creator !== currentUser) {
-        alert('Only the person who made this room can change it.');
-        return;
+    try {
+        const roomRef = doc(db, 'rooms', currentRoomId);
+        await updateDoc(roomRef, {
+            roomType: document.getElementById('settingsRoomType').value,
+            messageTimer: document.getElementById('settingsMessageTimer').value
+        });
+        
+        closeRoomSettings();
+        showNotification('All set');
+        
+        // Reload room
+        const room = rooms.find(r => r.id === currentRoomId);
+        if (room) await openRoom(currentRoomId);
+    } catch (error) {
+        console.error('Error saving room settings:', error);
+        alert('Failed to save settings');
     }
-    
-    room.roomType = document.getElementById('settingsRoomType').value;
-    room.messageTimer = document.getElementById('settingsMessageTimer').value;
-    rooms[roomIndex] = room;
-    save();
-    
-    closeRoomSettings();
-    showNotification('All set');
-    openRoom(currentRoomId);
 };
 
 function showNotification(msg) {
@@ -522,6 +480,7 @@ function showNotification(msg) {
     }, 3000);
 }
 
+// Settings management
 function loadSettings() {
     const settingsOverlay = document.getElementById('settingsOverlay');
     const themeRadios = settingsOverlay.querySelectorAll('input[name="theme"]');
@@ -546,7 +505,7 @@ function loadSettings() {
     });
 }
 
-window.saveSettings = function() {
+window.saveSettings = async function() {
     const settingsOverlay = document.getElementById('settingsOverlay');
     const themeRadio = settingsOverlay.querySelector('input[name="theme"]:checked');
     
@@ -567,7 +526,7 @@ window.saveSettings = function() {
         else if (label.includes('activity')) settings.hideActivityStatus = cb.checked;
     });
     
-    storage.set('settings', settings);
+    await saveSettingsToFirestore();
     closeSettings();
     showNotification('Got it');
 };
@@ -585,22 +544,15 @@ window.logout = function() {
     if (confirm('Are you sure you want to log out?')) {
         sessionStorage.removeItem('currentSessionUser');
         sessionStorage.removeItem('currentSessionEmail');
+        sessionStorage.removeItem('currentSessionUid');
         window.location.href = 'loginnsignup.html';
     }
 };
 
-function openFeed() {
-    renderFeed();
-    document.getElementById('feedPage').style.display = 'block';
-}
-
-function closeFeed() {
-    document.getElementById('feedPage').style.display = 'none';
-}
-
+// Feed functionality
 function formatTimeAgo(timestamp) {
     const now = Date.now();
-    const diff = now - timestamp;
+    const diff = now - new Date(timestamp).getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -612,81 +564,97 @@ function formatTimeAgo(timestamp) {
     return new Date(timestamp).toLocaleDateString();
 }
 
-function renderFeed() {
-    rooms = storage.get('rooms') || [];
-    feedPosts = storage.get('feedPosts') || [];
-    
-    const userMessages = [];
-    rooms.forEach(room => {
-        if (room.members && room.members.includes(currentUser)) {
-            if (room.messages && Array.isArray(room.messages)) {
-                room.messages.forEach(msg => {
-                    if (msg.author === currentUser) {
-                        userMessages.push({
-                            roomName: room.name,
-                            content: msg.content,
-                            timestamp: msg.timestamp || Date.now(),
-                            roomId: room.id,
-                            media: msg.media || []
-                        });
-                    }
-                });
+async function renderFeed() {
+    try {
+        // Load feed posts
+        await loadFeedPosts();
+        
+        // Collect user messages from all joined rooms
+        const userMessages = [];
+        for (const room of rooms) {
+            if (room.members && room.members.includes(currentUser)) {
+                try {
+                    const snapshot = await getDocs(collection(db, 'rooms', room.id, 'messages'));
+                    snapshot.docs.forEach(doc => {
+                        const msg = doc.data();
+                        if (msg.author === currentUser) {
+                            userMessages.push({
+                                roomName: room.name,
+                                content: msg.content,
+                                timestamp: msg.timestamp,
+                                roomId: room.id,
+                                media: msg.media || []
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading room messages:', error);
+                }
             }
         }
-    });
-    
-    const allPosts = [...feedPosts, ...userMessages]
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-        .slice(0, 50);
+        
+        const allPosts = [...feedPosts, ...userMessages]
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, 50);
 
-    if (!allPosts.length) {
-        document.getElementById('feedContent').innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-feather-alt"></i>
-                <h3>No thoughts shared yet</h3>
-                <p>Your quiet moments will appear here</p>
-            </div>
-        `;
-        return;
-    }
-
-    document.getElementById('feedContent').innerHTML = allPosts.map(post => {
-        let mediaClass = '';
-        if (post.media && post.media.length > 0) {
-            if (post.media.length === 1) mediaClass = 'single';
-            else if (post.media.length === 2) mediaClass = 'double';
-            else if (post.media.length === 3) mediaClass = 'triple';
-            else mediaClass = 'quad';
+        if (!allPosts.length) {
+            document.getElementById('feedContent').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-feather-alt"></i>
+                    <h3>No thoughts shared yet</h3>
+                    <p>Your quiet moments will appear here</p>
+                </div>
+            `;
+            return;
         }
 
-        return `
-            <div class="post-card">
-                <span class="post-room-tag">from ${post.roomName}</span>
-                <div class="post-content">${post.content}</div>
-                ${post.media && post.media.length > 0 ? `
-                    <div class="post-media ${mediaClass}">
-                        ${post.media.map(media => {
-                            if (media.type === 'video') {
-                                return `<video controls src="${media.data}" class="post-video"></video>`;
-                            } else {
-                                return `<img src="${media.data}" alt="Posted image" class="post-image">`;
-                            }
-                        }).join('')}
+        document.getElementById('feedContent').innerHTML = allPosts.map(post => {
+            let mediaClass = '';
+            if (post.media && post.media.length > 0) {
+                if (post.media.length === 1) mediaClass = 'single';
+                else if (post.media.length === 2) mediaClass = 'double';
+                else if (post.media.length === 3) mediaClass = 'triple';
+                else mediaClass = 'quad';
+            }
+
+            return `
+                <div class="post-card">
+                    <span class="post-room-tag">from ${post.roomName}</span>
+                    <div class="post-content">${post.content}</div>
+                    ${post.media && post.media.length > 0 ? `
+                        <div class="post-media ${mediaClass}">
+                            ${post.media.map(media => {
+                                if (media.type === 'video') {
+                                    return `<video controls src="${media.data}" class="post-video"></video>`;
+                                } else {
+                                    return `<img src="${media.data}" alt="Posted image" class="post-image">`;
+                                }
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="post-meta">
+                        <span>${formatTimeAgo(post.timestamp)}</span>
                     </div>
-                ` : ''}
-                <div class="post-meta">
-                    <span>${formatTimeAgo(post.timestamp)}</span>
                 </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error rendering feed:', error);
+    }
+}
+
+function openFeed() {
+    renderFeed();
+    document.getElementById('feedPage').style.display = 'block';
+}
+
+function closeFeed() {
+    document.getElementById('feedPage').style.display = 'none';
 }
 
 function openCreatePost() {
     const modal = document.getElementById('createPostModal');
     modal.style.display = 'flex';
-    
-    rooms = storage.get('rooms') || [];
     
     const roomSelect = document.getElementById('postRoomSelect');
     const joinedRooms = rooms.filter(r => r.members && r.members.includes(currentUser));
@@ -783,7 +751,7 @@ window.removeMedia = function(index) {
     updateMediaPreview();
 };
 
-window.createPost = function() {
+window.createPost = async function() {
     const content = document.getElementById('postContent').value.trim();
     const roomId = document.getElementById('postRoomSelect').value;
     
@@ -792,34 +760,111 @@ window.createPost = function() {
         return;
     }
     
-    rooms = storage.get('rooms') || [];
-    feedPosts = storage.get('feedPosts') || [];
-        
-    if (roomId) {
-        const roomIndex = rooms.findIndex(r => r.id == roomId);
-        if (roomIndex !== -1) {
-            if (!rooms[roomIndex].messages) rooms[roomIndex].messages = [];
-            rooms[roomIndex].messages.push({
+    try {
+        if (roomId) {
+            // Add to room messages
+            await addDoc(collection(db, 'rooms', roomId, 'messages'), {
                 author: currentUser,
                 content: content,
-                time: formatTime(new Date()),
-                timestamp: Date.now(),
+                timestamp: new Date().toISOString(),
+                media: [...selectedMedia]
+            });
+        } else {
+            // Add to feed posts
+            await addDoc(collection(db, 'feedPosts'), {
+                roomName: 'Personal',
+                content: content,
+                timestamp: new Date().toISOString(),
                 media: [...selectedMedia]
             });
         }
-    } else {
-        feedPosts.unshift({
-            roomName: 'Personal',
-            content: content,
-            timestamp: Date.now(),
-            media: [...selectedMedia]
-        });
-    }
         
-    save();
-    closeCreatePost();
-    showNotification('Shared');
+        closeCreatePost();
+        showNotification('Shared');
+    } catch (error) {
+        console.error('Error creating post:', error);
+        alert('Failed to share post');
+    }
 };
+
+function checkCreatorAccess() {
+    const resetSection = document.getElementById('resetSection');
+    if (resetSection) resetSection.style.display = isCreator ? 'block' : 'none';
+}
+
+// Initialize the app
+async function init() {
+    try {
+        // Load user settings
+        await loadUserSettings();
+        
+        // Setup real-time listeners
+        setupRoomsListener();
+        
+        // Render initial state
+        renderJoined();
+        renderAvailable();
+        loadSettings();
+        checkCreatorAccess();
+        
+        // Setup event listeners
+        document.getElementById('createRoomBtn').onclick = () => document.getElementById('createRoomPage').style.display = 'block';
+        document.getElementById('profileBtn').onclick = openSettings;
+        document.getElementById('feedBtn').onclick = openFeed;
+        document.getElementById('createPostBtn').onclick = openCreatePost;
+        document.getElementById('sendBtn').onclick = sendMessage;
+        
+        const messageInput = document.getElementById('messageInput');
+        messageInput.onkeypress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                sendMessage(); 
+            }
+        };
+        
+        document.getElementById('postContent').oninput = (e) => {
+            document.getElementById('postCharCount').textContent = e.target.value.length;
+        };
+        
+        document.getElementById('mediaInput').onchange = handleMediaSelect;
+        document.getElementById('createPostModal').onclick = (e) => {
+            if (e.target.id === 'createPostModal') closeCreatePost();
+        };
+        document.getElementById('settingsOverlay').onclick = (e) => {
+            if (e.target.id === 'settingsOverlay') closeSettings();
+        };
+        document.getElementById('roomSettingsModal').onclick = (e) => {
+            if (e.target.id === 'roomSettingsModal') closeRoomSettings();
+        };
+        
+        console.log('✓ ROOM app initialized with Firebase');
+    } catch (error) {
+        console.error('Error initializing app:', error);
+    }
+}
+
+// Make functions globally available
+window.openRoom = openRoom;
+window.closeRoomView = closeRoomView;
+window.joinRoom = joinRoom;
+window.leaveRoom = leaveRoom;
+window.openRoomSettings = openRoomSettings;
+window.closeRoomSettings = closeRoomSettings;
+window.sendMessage = sendMessage;
+window.openFeed = openFeed;
+window.closeFeed = closeFeed;
+window.openCreatePost = openCreatePost;
+window.closeCreatePost = closeCreatePost;
+window.openSettings = openSettings;
+window.closeSettings = closeSettings;
+window.createNewRoom = createNewRoom;
+window.closeCreateRoom = closeCreateRoom;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (roomsUnsubscribe) roomsUnsubscribe();
+    if (currentRoomUnsubscribe) currentRoomUnsubscribe();
+});
