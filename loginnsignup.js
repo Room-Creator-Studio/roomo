@@ -58,6 +58,10 @@ function togglePasswordVisibility(id) {
     }
 }
 
+// Expose functions to global scope for inline onclick handlers
+window.showForm = showForm;
+window.togglePasswordVisibility = togglePasswordVisibility;
+
 // Initialize creator account in Firestore
 async function initializeCreatorAccount() {
     try {
