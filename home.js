@@ -3,7 +3,7 @@
 // Migrated to Firebase for data persistence
 // =========================================
 
-import { db, auth } from './firebase/firebase.js';
+import { db } from './firebase/firebase.js';
 import {
     collection,
     doc,
@@ -21,20 +21,17 @@ import {
 
 // Session data (temporary, in-memory only)
 const sessionUser = sessionStorage.getItem('currentSessionUser');
-const sessionEmail = sessionStorage.getItem('currentSessionEmail');
-const sessionUid = sessionStorage.getItem('currentSessionUid');
+const sessionDeviceId = sessionStorage.getItem('currentSessionDeviceId');
+const sessionId = sessionStorage.getItem('currentSessionId');
 
-if (!sessionUser || !sessionEmail) {
+if (!sessionUser) {
     window.location.href = 'loginnsignup.html';
     throw new Error('No session');
 }
 
 const currentUser = sessionUser;
-const currentEmail = sessionEmail;
-const currentUid = sessionUid;
-
-// Determine if user is creator
-const isCreator = currentEmail === 'harki.amrik@gmail.com';
+const currentDeviceId = sessionDeviceId || 'unknown-device';
+const currentSessionId = sessionId || 'unknown-session';
 
 // App state
 let rooms = [];
@@ -58,7 +55,7 @@ let currentRoomUnsubscribe = null;
 // Load user settings from Firestore
 async function loadUserSettings() {
     try {
-        const userDoc = await getDoc(doc(db, 'users', currentEmail));
+        const userDoc = await getDoc(doc(db, 'sessions', currentSessionId));
         if (userDoc.exists() && userDoc.data().settings) {
             settings = { ...settings, ...userDoc.data().settings };
         }
@@ -70,7 +67,7 @@ async function loadUserSettings() {
 // Save settings to Firestore
 async function saveSettingsToFirestore() {
     try {
-        await updateDoc(doc(db, 'users', currentEmail), {
+        await updateDoc(doc(db, 'sessions', currentSessionId), {
             settings: settings
         });
     } catch (error) {
@@ -541,10 +538,10 @@ function closeSettings() {
 }
 
 window.logout = function() {
-    if (confirm('Are you sure you want to log out?')) {
+    if (confirm('Are you sure you want to exit your room?')) {
         sessionStorage.removeItem('currentSessionUser');
-        sessionStorage.removeItem('currentSessionEmail');
-        sessionStorage.removeItem('currentSessionUid');
+        sessionStorage.removeItem('currentSessionDeviceId');
+        sessionStorage.removeItem('currentSessionId');
         window.location.href = 'loginnsignup.html';
     }
 };
@@ -788,8 +785,9 @@ window.createPost = async function() {
 };
 
 function checkCreatorAccess() {
+    // Creator features disabled in simplified version
     const resetSection = document.getElementById('resetSection');
-    if (resetSection) resetSection.style.display = isCreator ? 'block' : 'none';
+    if (resetSection) resetSection.style.display = 'none';
 }
 
 // Initialize the app
