@@ -5,10 +5,9 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
 // Firebase configuration
-// Replace these with your actual Firebase project credentials
 const firebaseConfig = {
   apiKey: "AIzaSyDGRimvvjyQiSyE_-aFlpIgCo1Ky46hQQs",
   authDomain: "room-99a46.firebaseapp.com",
@@ -18,15 +17,33 @@ const firebaseConfig = {
   appId: "1:122165046155:web:60e5bc2651b533a94f1d8e"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let db;
+let auth;
 
-// Initialize Firestore
-export const db = getFirestore(app);
+try {
+  // Initialize Firebase
+  app = initializeApp(firebaseConfig);
+  console.log('✓ Firebase initialized successfully');
+  
+  // Initialize Firestore
+  db = getFirestore(app);
+  console.log('✓ Firestore initialized');
+  
+  // Initialize Auth - add explicit error handling
+  auth = getAuth(app);
+  console.log('✓ Firebase Auth initialized');
+  
+  // Set auth persistence to LOCAL (survives page refresh)
+  auth.setPersistence('LOCAL').catch(err => {
+    console.warn('Could not set persistence:', err);
+  });
+  
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  console.error('Config used:', firebaseConfig);
+}
 
-// Initialize Auth
-export const auth = getAuth(app);
-
-// Export app for reference
+// Export initialized services
+export { db, auth, app };
 export default app;
-

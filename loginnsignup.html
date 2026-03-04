@@ -94,6 +94,27 @@
             .catch(err => console.warn('ROOM SW failed:', err));
         });
       }
+      
+      // Debug: Check if module loading works
+      console.log('📍 loginnsignup.html loaded');
+      console.log('🔍 Module loading diagnostic:');
+      console.log('- Current page:', window.location.href);
+      console.log('- Firebase CDN status: Loading from gstatic.com...');
+    </script>
+    <script type="module">
+      // Test Firebase module loading
+      try {
+        import('./firebase/firebase.js').then(module => {
+          console.log('✓ Firebase module loaded successfully');
+          console.log('- Auth object exists:', !!module.auth);
+          console.log('- DB object exists:', !!module.db);
+        }).catch(err => {
+          console.error('❌ Failed to load Firebase module:', err);
+          alert('Firebase module loading failed. Check console for details.');
+        });
+      } catch (err) {
+        console.error('❌ Error importing Firebase:', err);
+      }
     </script>
     <script type="module" src="loginnsignup.js"></script>
 </body>

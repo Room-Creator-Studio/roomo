@@ -104,11 +104,19 @@ loginForm.addEventListener('submit', async (e) => {
     
     console.log('=== LOGIN ATTEMPT ===');
     console.log('Email:', email);
+    console.log('Auth object:', auth);
     
     try {
+        // Verify auth is properly initialized
+        if (!auth) {
+            throw new Error('Firebase Auth is not initialized. Please reload the page.');
+        }
+        
         // Sign in with Firebase Auth
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        console.log('User signed in:', user.uid);
         
         // Get user profile from Firestore
         const userDoc = await getDoc(doc(db, 'users', email));
@@ -132,7 +140,21 @@ loginForm.addEventListener('submit', async (e) => {
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Invalid email or password');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
+        if (error.code === 'auth/user-not-found') {
+            alert('No account found with this email. Please sign up first.');
+            showForm('signup');
+        } else if (error.code === 'auth/wrong-password') {
+            alert('Incorrect password. Please try again.');
+        } else if (error.code === 'auth/configuration-not-found') {
+            alert('Firebase configuration error. Please reload the page and try again.');
+        } else if (error.code === 'auth/invalid-email') {
+            alert('Please enter a valid email address.');
+        } else {
+            alert('Invalid email or password');
+        }
     }
 });
 
@@ -157,11 +179,19 @@ signupForm.addEventListener('submit', async (e) => {
     console.log('=== SIGNUP ATTEMPT ===');
     console.log('Name:', name);
     console.log('Email:', email);
+    console.log('Auth object:', auth);
 
     try {
+        // Verify auth is properly initialized
+        if (!auth) {
+            throw new Error('Firebase Auth is not initialized. Please reload the page.');
+        }
+        
         // Create user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        console.log('User created:', user.uid);
         
         // Store user profile in Firestore
         await setDoc(doc(db, 'users', email), {
@@ -190,6 +220,8 @@ signupForm.addEventListener('submit', async (e) => {
         window.location.href = "home.html";
     } catch (error) {
         console.error('Signup error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
         
         // Handle specific Firebase errors
         if (error.code === 'auth/email-already-in-use') {
@@ -197,6 +229,10 @@ signupForm.addEventListener('submit', async (e) => {
             showForm('login');
         } else if (error.code === 'auth/weak-password') {
             alert('Password is too weak. Please use a stronger password.');
+        } else if (error.code === 'auth/configuration-not-found') {
+            alert('Firebase configuration error. Please check your browser console and reload the page.');
+        } else if (error.code === 'auth/invalid-email') {
+            alert('Please enter a valid email address.');
         } else {
             alert('Error creating account: ' + error.message);
         }
