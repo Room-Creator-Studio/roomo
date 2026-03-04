@@ -5,7 +5,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -19,7 +18,6 @@ const firebaseConfig = {
 
 let app;
 let db;
-let auth;
 
 try {
   // Initialize Firebase
@@ -30,20 +28,12 @@ try {
   db = getFirestore(app);
   console.log('✓ Firestore initialized');
   
-  // Initialize Auth - add explicit error handling
-  auth = getAuth(app);
-  console.log('✓ Firebase Auth initialized');
-  
-  // Set auth persistence to LOCAL (survives page refresh)
-  auth.setPersistence('LOCAL').catch(err => {
-    console.warn('Could not set persistence:', err);
-  });
-  
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
   console.error('Config used:', firebaseConfig);
 }
 
 // Export initialized services
-export { db, auth, app };
+export { db, app };
 export default app;
+s
