@@ -19,12 +19,20 @@ import {
     arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
+console.log('✓ home.js loaded');
+
 // Session data (temporary, in-memory only)
 const sessionUser = sessionStorage.getItem('currentSessionUser');
 const sessionDeviceId = sessionStorage.getItem('currentSessionDeviceId');
 const sessionId = sessionStorage.getItem('currentSessionId');
 
+console.log('=== SESSION CHECK ===');
+console.log('sessionUser:', sessionUser);
+console.log('sessionDeviceId:', sessionDeviceId);
+console.log('sessionId:', sessionId);
+
 if (!sessionUser) {
+    console.error('❌ No session user found - redirecting to login');
     window.location.href = 'loginnsignup.html';
     throw new Error('No session');
 }

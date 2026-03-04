@@ -91,6 +91,7 @@
 
         form {
             width: 100%;
+            display: block;
             animation: slideUp 0.5s ease-out;
         }
 
