@@ -1,58 +1,177 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROOM | Welcome</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="icon" type="image/svg+xml" href="Rooms.svg">
-    <link rel="stylesheet" href="loginnsignup.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- PWA: Manifest -->
-<link rel="manifest" href="./manifest.json">
+        :root {
+        --bg-color: #121212;
+        --card-bg: #1C1C1C;
 
-<!-- PWA: Theme color (top bar on Android) -->
-<meta name="theme-color" content="#121212">
+        --text-primary: #E6E6E6;
+        --text-secondary: #9A9A9A;
 
-<!-- PWA: iOS specific tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ROOM">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-</head>
-<body>
+        --accent-color: #7FAF96;
+        --accent-hover: #2A2A2A;
 
-    <div class="container">
-        <header>
-            <a href="index.html" class="logo">ROOM</a>
-            <p class="tagline" id="tagline">Welcome Home</p>
-        </header>
+        --border-color: #2A2A2A;
+        --input-focus: #7FAF96;
 
-        <div class="card">
-            <div class="form-container">
-                <!-- Username Form -->
-                <form id="usernameForm">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" placeholder="Enter your name" required autofocus>
-                    </div>
-                    <button type="submit" class="btn-primary">Enter Your Room</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('ROOM SW registered:', reg.scope))
-            .catch(err => console.warn('ROOM SW failed:', err));
-        });
-      }
-    </script>
-    <script type="module" src="loginnsignup.js"></script>
-</body>
-</html>
+        --error-color: #B98A8A;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            display: block;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            color: var(--accent-color);
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        /* Form Card */
+        .card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Form Layout */
+        .form-container {
+            width: 100%;
+        }
+
+        form {
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            outline: none;
+            background: #181818;
+            color: var(--text-primary);
+        }
+
+        input:focus {
+            border-color: var(--input-focus);
+            background: #1C1C1C;
+            box-shadow: 0 0 0 2px rgba(127, 175, 150, 0.1);
+        }
+
+        input.focused {
+            border-color: var(--input-focus);
+        }
+
+        /* Button Styling */
+        .btn-primary {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(127, 175, 150, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card {
+                padding: 1.5rem;
+            }
+
+            .logo {
+                font-size: 1.75rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.25rem;
+            }
+        }
