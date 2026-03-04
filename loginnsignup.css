@@ -58,6 +58,13 @@
             text-transform: uppercase;
             margin-bottom: 0.5rem;
             display: block;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            color: var(--accent-color);
         }
 
         .tagline {
@@ -77,69 +84,23 @@
             overflow: hidden;
         }
 
-        /* Toggle Switch */
-        .form-toggle {
-            display: flex;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .toggle-btn {
-            flex: 1;
-            padding: 0.75rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .toggle-btn.active {
-            color: var(--text-primary);
-        }
-
-        .toggle-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--accent-color);
-        }
-
         /* Form Layout */
         .form-container {
-            position: relative;
-            min-height: 480px;
+            width: 100%;
         }
 
         form {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            transition: var(--transition);
-            opacity: 0;
-            pointer-events: none;
-            transform: translateX(20px);
+            animation: slideUp 0.5s ease-out;
         }
 
-        form.active {
-            opacity: 1;
-            pointer-events: all;
-            transform: translateX(0);
-        }
-
-        form.hidden-left {
-            transform: translateX(-20px);
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .form-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.5rem;
             position: relative;
         }
 
@@ -168,39 +129,11 @@
         input:focus {
             border-color: var(--input-focus);
             background: #1C1C1C;
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.02);
+            box-shadow: 0 0 0 2px rgba(127, 175, 150, 0.1);
         }
 
-        /* Password Toggle Icon */
-        .password-wrapper {
-            position: relative;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            user-select: none;
-            padding: 5px;
-        }
-
-        .forgot-link {
-            display: block;
-            text-align: right;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            margin-top: -0.75rem;
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-        }
-
-        .forgot-link:hover {
-            color: var(--text-primary);
+        input.focused {
+            border-color: var(--input-focus);
         }
 
         /* Button Styling */
@@ -219,45 +152,26 @@
         }
 
         .btn-primary:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(127, 175, 150, 0.3);
         }
 
         .btn-primary:active {
             transform: translateY(0);
         }
 
-        /* Footer links */
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .link-toggle {
-            color: var(--text-primary);
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            margin-left: 4px;
-        }
-
-        .link-toggle:hover {
-            text-decoration: underline;
-        }
-
-        /* Error Message */
-        .error-msg {
-            color: var(--error-color);
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-            display: none;
-        }
-
         /* Responsive */
         @media (max-width: 480px) {
             .card {
                 padding: 1.5rem;
+            }
+
+            .logo {
+                font-size: 1.75rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.25rem;
             }
         }
