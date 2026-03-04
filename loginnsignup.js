@@ -1,204 +1,40 @@
 // =========================================
-// ROOM - LOGIN & SIGNUP
-// Migrated to Firebase for user management
+// ROOM - USERNAME ENTRY
+// Simple username entry with Firestore sync for multi-device
 // =========================================
 
-import { db, auth } from './firebase/firebase.js';
-import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { db } from './firebase/firebase.js';
 import {
     collection,
     doc,
     setDoc,
-    getDoc,
-    query,
-    where,
-    getDocs
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-const loginForm = document.getElementById('loginForm');
-const signupForm = document.getElementById('signupForm');
-const tagline = document.getElementById('tagline');
-const toggleBtns = document.querySelectorAll('.toggle-btn');
+const usernameForm = document.getElementById('usernameForm');
+const usernameInput = document.getElementById('username');
 
-function showForm(type) {
-    if (type === 'login') {
-        loginForm.classList.add('active');
-        loginForm.classList.remove('hidden-left');
-        signupForm.classList.remove('active');
-        signupForm.classList.add('hidden-left');
-        
-        toggleBtns[0].classList.add('active');
-        toggleBtns[1].classList.remove('active');
-        tagline.innerText = "Welcome back";
-    } else {
-        signupForm.classList.add('active');
-        signupForm.classList.remove('hidden-left');
-        loginForm.classList.remove('active');
-        loginForm.classList.add('hidden-left');
-
-        toggleBtns[1].classList.add('active');
-        toggleBtns[0].classList.remove('active');
-        tagline.innerText = "Join the quiet space";
+// Generate a unique device ID (stored locally)
+function getDeviceId() {
+    let deviceId = localStorage.getItem('roomDeviceId');
+    if (!deviceId) {
+        deviceId = 'device_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('roomDeviceId', deviceId);
     }
+    return deviceId;
 }
 
-function togglePasswordVisibility(id) {
-    const input = document.getElementById(id);
-    const btn = input.nextElementSibling;
-    if (input.type === "password") {
-        input.type = "text";
-        btn.innerText = "HIDE";
-    } else {
-        input.type = "password";
-        btn.innerText = "SHOW";
-    }
-}
-
-// Expose functions to global scope for inline onclick handlers
-window.showForm = showForm;
-window.togglePasswordVisibility = togglePasswordVisibility;
-
-// Initialize creator account in Firestore
+// Initialize creator account data in Firestore
 async function initializeCreatorAccount() {
     try {
         const creatorEmail = 'harki.amrik@gmail.com';
         const creatorUsername = 'Creator-Of-Room';
         
-        const userDoc = await getDoc(doc(db, 'users', creatorEmail));
-        
-        if (!userDoc.exists()) {
-            // Store creator account in Firestore
-            await setDoc(doc(db, 'users', creatorEmail), {
-                name: creatorUsername,
-                email: creatorEmail,
-                isCreator: true,
-                createdAt: new Date().toISOString(),
-                settings: {
-                    theme: 'dark',
-                    reduceAnimations: false,
-                    quietMode: false,
-                    onlyImportantUpdates: true,
-                    appearInvisible: false,
-                    hideActivityStatus: false
-                }
-            });
-            console.log('Creator account initialized in Firestore');
-        }
-    } catch (error) {
-        console.error('Error initializing creator account:', error);
-    }
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', initializeCreatorAccount);
-
-// Login Form
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    
-    console.log('=== LOGIN ATTEMPT ===');
-    console.log('Email:', email);
-    console.log('Auth object:', auth);
-    
-    try {
-        // Verify auth is properly initialized
-        if (!auth) {
-            throw new Error('Firebase Auth is not initialized. Please reload the page.');
-        }
-        
-        // Sign in with Firebase Auth
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        console.log('User signed in:', user.uid);
-        
-        // Get user profile from Firestore
-        const userDoc = await getDoc(doc(db, 'users', email));
-        
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            
-            // Store in sessionStorage for current session (temporary, in-memory state)
-            sessionStorage.setItem('currentSessionUser', userData.name);
-            sessionStorage.setItem('currentSessionEmail', email);
-            sessionStorage.setItem('currentSessionUid', user.uid);
-            
-            console.log('✓ Login successful');
-            console.log('Session user:', userData.name);
-            console.log('Session email:', email);
-            
-            alert('Login successful');
-            window.location.href = "home.html";
-        } else {
-            throw new Error('User profile not found');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        
-        if (error.code === 'auth/user-not-found') {
-            alert('No account found with this email. Please sign up first.');
-            showForm('signup');
-        } else if (error.code === 'auth/wrong-password') {
-            alert('Incorrect password. Please try again.');
-        } else if (error.code === 'auth/configuration-not-found') {
-            alert('Firebase configuration error. Please reload the page and try again.');
-        } else if (error.code === 'auth/invalid-email') {
-            alert('Please enter a valid email address.');
-        } else {
-            alert('Invalid email or password');
-        }
-    }
-});
-
-// Signup Form
-signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('signupName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('signupConfirmPassword').value;
-
-    if (password !== confirmPassword) {
-        alert("Passwords do not match");
-        return;
-    }
-    
-    if (!name) {
-        alert("Please enter your name");
-        return;
-    }
-
-    console.log('=== SIGNUP ATTEMPT ===');
-    console.log('Name:', name);
-    console.log('Email:', email);
-    console.log('Auth object:', auth);
-
-    try {
-        // Verify auth is properly initialized
-        if (!auth) {
-            throw new Error('Firebase Auth is not initialized. Please reload the page.');
-        }
-        
-        // Create user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        console.log('User created:', user.uid);
-        
-        // Store user profile in Firestore
-        await setDoc(doc(db, 'users', email), {
-            name: name || 'You',
-            email: email,
-            isCreator: false,
-            createdAt: new Date().toISOString(),
+        await setDoc(doc(db, 'users', creatorEmail), {
+            name: creatorUsername,
+            email: creatorEmail,
+            isCreator: true,
+            createdAt: serverTimestamp(),
             settings: {
                 theme: 'dark',
                 reduceAnimations: false,
@@ -207,45 +43,69 @@ signupForm.addEventListener('submit', async (e) => {
                 appearInvisible: false,
                 hideActivityStatus: false
             }
-        });
+        }, { merge: true });
+        console.log('✓ Creator account initialized in Firestore');
+    } catch (error) {
+        console.warn('Could not initialize creator account:', error.message);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCreatorAccount();
+    // Focus on username input
+    usernameInput.focus();
+});
+
+// Username Form Submit
+usernameForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = usernameInput.value.trim();
+    
+    if (!username) {
+        alert("Please enter your name");
+        return;
+    }
+
+    console.log('=== ENTERING ROOM ===');
+    console.log('Username:', username);
+
+    try {
+        const deviceId = getDeviceId();
+        const sessionId = 'session_' + Date.now();
         
         // Store in sessionStorage for current session
-        sessionStorage.setItem('currentSessionUser', name || 'You');
-        sessionStorage.setItem('currentSessionEmail', email);
-        sessionStorage.setItem('currentSessionUid', user.uid);
-
-        console.log('✓ Signup successful');
+        sessionStorage.setItem('currentSessionUser', username);
+        sessionStorage.setItem('currentSessionDeviceId', deviceId);
+        sessionStorage.setItem('currentSessionId', sessionId);
         
-        alert('Account created successfully');
+        // Store user entry in Firestore for multi-device sync
+        await setDoc(doc(db, 'sessions', sessionId), {
+            username: username,
+            deviceId: deviceId,
+            createdAt: serverTimestamp(),
+            lastActivity: serverTimestamp(),
+            isActive: true
+        });
+
+        console.log('✓ Room entered successfully');
+        console.log('Username:', username);
+        console.log('Device ID:', deviceId);
+        console.log('Session ID:', sessionId);
+        
+        // Redirect to home
         window.location.href = "home.html";
     } catch (error) {
-        console.error('Signup error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        
-        // Handle specific Firebase errors
-        if (error.code === 'auth/email-already-in-use') {
-            alert('An account with this email already exists. Please login instead.');
-            showForm('login');
-        } else if (error.code === 'auth/weak-password') {
-            alert('Password is too weak. Please use a stronger password.');
-        } else if (error.code === 'auth/configuration-not-found') {
-            alert('Firebase configuration error. Please check your browser console and reload the page.');
-        } else if (error.code === 'auth/invalid-email') {
-            alert('Please enter a valid email address.');
-        } else {
-            alert('Error creating account: ' + error.message);
-        }
+        console.error('Error entering room:', error);
+        alert('Error accessing room: ' + error.message);
     }
 });
 
 // Input micro-interactions
-const inputs = document.querySelectorAll('input');
-inputs.forEach(input => {
-    input.addEventListener('focus', () => {
-        input.parentElement.classList.add('focused');
-    });
-    input.addEventListener('blur', () => {
-        input.parentElement.classList.remove('focused');
-    });
+usernameInput.addEventListener('focus', () => {
+    usernameInput.parentElement.classList.add('focused');
+});
+
+usernameInput.addEventListener('blur', () => {
+    usernameInput.parentElement.classList.remove('focused');
 });

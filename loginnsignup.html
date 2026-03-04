@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROOM | Login & Sign Up</title>
+    <title>ROOM | Welcome</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="icon" type="image/svg+xml" href="Rooms.svg">
@@ -30,62 +30,19 @@
         </header>
 
         <div class="card">
-            <div class="form-toggle">
-                <button class="toggle-btn active" onclick="showForm('login')">Welcome Home</button>
-                <button class="toggle-btn" onclick="showForm('signup')">Step Inside</button>
-            </div>
-
             <div class="form-container">
-                <!-- Login Form -->
-                <form id="loginForm" class="active">
+                <!-- Username Form -->
+                <form id="usernameForm">
                     <div class="form-group">
-                        <label for="loginEmail">Email</label>
-                        <input type="email" id="loginEmail" placeholder="hello@example.com" required>
-                        <div class="error-msg">Please enter a valid email</div>
+                        <label for="username">Your Name</label>
+                        <input type="text" id="username" placeholder="Enter your name" required autofocus>
                     </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="loginPassword" placeholder="••••••••" required>
-                            <span class="toggle-password" onclick="togglePasswordVisibility('loginPassword')">SHOW</span>
-                        </div>
-                    </div>
-                    <a href="#" class="forgot-link">Forgot password?</a>
-                    <button type="submit" class="btn-primary">Come back in</button>
-                    <div class="form-footer">
-                        Don't have a Room? <span class="link-toggle" onclick="showForm('signup')">Step Inside</span>
-                    </div>
-                </form>
-
-                <!-- Signup Form -->
-                <form id="signupForm" class="hidden-left">
-                    <div class="form-group">
-                        <label for="signupName">Username</label>
-                        <input type="text" id="signupName" placeholder="Your name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="signupEmail">Email</label>
-                        <input type="email" id="signupEmail" placeholder="hello@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="signupPassword">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="signupPassword" placeholder="••••••••" required>
-                            <span class="toggle-password" onclick="togglePasswordVisibility('signupPassword')">SHOW</span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="signupConfirmPassword">Confirm Password</label>
-                        <input type="password" id="signupConfirmPassword" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Get your key</button>
-                    <div class="form-footer">
-                        Already have a Room? <span class="link-toggle" onclick="showForm('login')">Come back in</span>
-                    </div>
+                    <button type="submit" class="btn-primary">Enter Your Room</button>
                 </form>
             </div>
         </div>
     </div>
+    
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -93,27 +50,6 @@
             .then(reg => console.log('ROOM SW registered:', reg.scope))
             .catch(err => console.warn('ROOM SW failed:', err));
         });
-      }
-      
-      // Debug: Check if module loading works
-      console.log('📍 loginnsignup.html loaded');
-      console.log('🔍 Module loading diagnostic:');
-      console.log('- Current page:', window.location.href);
-      console.log('- Firebase CDN status: Loading from gstatic.com...');
-    </script>
-    <script type="module">
-      // Test Firebase module loading
-      try {
-        import('./firebase/firebase.js').then(module => {
-          console.log('✓ Firebase module loaded successfully');
-          console.log('- Auth object exists:', !!module.auth);
-          console.log('- DB object exists:', !!module.db);
-        }).catch(err => {
-          console.error('❌ Failed to load Firebase module:', err);
-          alert('Firebase module loading failed. Check console for details.');
-        });
-      } catch (err) {
-        console.error('❌ Error importing Firebase:', err);
       }
     </script>
     <script type="module" src="loginnsignup.js"></script>
