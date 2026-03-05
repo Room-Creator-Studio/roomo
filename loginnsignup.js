@@ -13,28 +13,23 @@ import {
 
 console.log('✓ loginnsignup.js loaded');
 
-// Wait for DOM to be ready
-const waitForForm = new Promise((resolve) => {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', resolve);
-    } else {
-        resolve();
-    }
-});
-
-waitForForm.then(() => {
-    console.log('✓ DOM ready');
+// Use DOMContentLoaded instead of manual promise
+function initializeForm() {
+    console.log('✓ DOM ready - initializing form');
+    
     const usernameForm = document.getElementById('usernameForm');
     const usernameInput = document.getElementById('username');
     
-    console.log('Form element:', usernameForm);
-    console.log('Input element:', usernameInput);
+    console.log('Form element found:', !!usernameForm);
+    console.log('Input element found:', !!usernameInput);
 
     if (!usernameForm || !usernameInput) {
-        console.error('❌ Form elements not found!');
-        console.error('Looking for id="usernameForm" and id="username"');
-        return;
+        console.error('❌ CRITICAL: Form elements not found!');
+        console.error('HTML should have: <form id="usernameForm"> and <input id="username">');
+        return false;
     }
+
+    console.log('✓ Form elements located successfully');
 
     // Generate a unique device ID (stored locally)
     function getDeviceId() {
@@ -142,4 +137,14 @@ waitForForm.then(() => {
     });
 
     console.log('✓ loginnsignup.js initialized successfully');
-});
+    return true;
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    console.log('Document still loading, waiting...');
+    document.addEventListener('DOMContentLoaded', initializeForm);
+} else {
+    console.log('Document already loaded, initializing immediately');
+    initializeForm();
+}

@@ -11,9 +11,6 @@
     <!-- PWA: Manifest -->
 <link rel="manifest" href="/manifest.json">
 
-<!-- PWA: Theme color (top bar on Android) -->
-<meta name="theme-color" content="#121212">
-
 <!-- PWA: iOS specific tags -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,11 +19,11 @@
 </head>
 <body>
     <header class="header">
-        <button class="header-btn profile-btn" id="profileBtn">
+        <button class="header-btn profile-btn" id="profileBtn" aria-label="Profile settings">
             <i class="fas fa-user"></i>
         </button>
         <a href="index.html" class="logo">ROOM</a>
-        <button class="header-btn" id="feedBtn">
+        <button class="header-btn" id="feedBtn" aria-label="View my corner">
             <i class="fas fa-feather-alt"></i>
             <span>My corner</span>
         </button>
@@ -41,14 +38,14 @@
             <section class="your-spaces">
                 <h2 class="section-title">Your Room</h2>
                 <div id="joinedRoomsContainer"></div>
-                <div class="empty-state" id="emptyState" style="display:none;">
+                <div class="empty-state hidden" id="emptyState">
                     <i class="fas fa-couch"></i>
                     <h3>You haven't walked into any rooms yet.</h3>
                 </div>
             </section>
 
             <div class="center-divider">
-                <button class="create-room-btn" id="createRoomBtn">
+                <button class="create-room-btn" id="createRoomBtn" aria-label="Create room">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -56,7 +53,7 @@
             <section class="find-people">
                 <h2 class="section-title">More Rooms to walk into..</h2>
                 <div id="availableRoomsContainer"></div>
-                <div class="empty-state" id="availableEmptyState" style="display:none;">
+                <div class="empty-state hidden" id="availableEmptyState">
                     <i class="fas fa-door-closed"></i>
                     <h3>No rooms are Opened right now..</h3>
                 </div>
@@ -70,9 +67,9 @@
                 <i class="fas fa-arrow-left"></i> Step out
             </button>
             <h2 class="room-view-title" id="roomViewTitle"></h2>
-            <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="flex-row-center">
                 <div class="room-creator" id="roomCreator"></div>
-                <button class="header-btn" id="roomSettingsBtn" onclick="openRoomSettings()" style="display: none;">
+                <button class="header-btn hidden" id="roomSettingsBtn" onclick="openRoomSettings()" aria-label="Room settings">
                     <i class="fas fa-cog"></i>
                 </button>
             </div>
@@ -89,7 +86,7 @@
                 <div class="message-input-container">
                     <div class="message-input-wrapper">
                         <textarea class="message-input" id="messageInput" placeholder="Say something..." rows="1"></textarea>
-                        <button class="send-btn" id="sendBtn">
+                        <button class="send-btn" id="sendBtn" aria-label="Send message">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
@@ -108,19 +105,19 @@
         <div class="create-room-content">
             <div class="form-group">
                 <label>What is it called?</label>
-                <input type="text" id="newRoomName" maxlength="50">
+                <input type="text" id="newRoomName" maxlength="50" placeholder="Room name">
             </div>
             <div class="form-group">
                 <label>What kind of room is this?</label>
-                <textarea id="newRoomDescription" maxlength="200"></textarea>
+                <textarea id="newRoomDescription" maxlength="200" placeholder="describe your room"></textarea>
             </div>
             <div class="form-group">
                 <label>How many friends can come in?</label>
-                <input type="number" id="newRoomLimit" min="2" max="50" value="8">
+                <input type="number" id="newRoomLimit" min="2" max="50" value="8" aria-label="Maximum members">
             </div>
             <div class="form-group">
                 <label>Who can Talk?</label>
-                <select id="newRoomType">
+                <select id="newRoomType" aria-label="Who can talk">
                     <option value="open">Everyone can talk</option>
                     <option value="creator-only">Just you talking (others listen)</option>
                     <option value="no-text">Just for hanging out (no text)</option>
@@ -129,7 +126,7 @@
             </div>
             <div class="form-group">
                 <label>How long do messages stay?</label>
-                <select id="newMessageTimer">
+                <select id="newMessageTimer" aria-label="Message timer">
                     <option value="none">Forever</option>
                     <option value="1">Fades away after 1 min</option>
                     <option value="2">Fades away after 2 min</option>
@@ -140,9 +137,9 @@
                 </select>
                 <p class="helper-text">Set how long messages take to fade away</p>
             </div>
-            <div style="display:flex;gap:1rem;margin-top:2rem;">
-                <button class="btn-secondary" onclick="closeCreateRoom()" style="flex:1;">Cancel</button>
-                <button class="btn-primary" onclick="createNewRoom()" style="flex:1;">Create</button>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="closeCreateRoom()">Cancel</button>
+                <button class="btn-primary" onclick="createNewRoom()">Create</button>
             </div>
         </div>
     </div>
@@ -155,17 +152,17 @@
 
             <section>
                 <h4>Room Type</h4>
-                <select id="settingsRoomType" style="width: 100%; padding: 0.8rem; background: #181818; border: 1px solid #2A2A2A; border-radius: 8px; color: #E6E6E6; font-family: 'Inter', sans-serif;">
+                <select id="settingsRoomType" aria-label="Room type">
                     <option value="open">Everyone can talk</option>
                     <option value="creator-only">Just you talking (others listen)</option>
                     <option value="no-text">Just for hanging out (no text)</option>
                 </select>
-                <p class="helper-text" style="margin-top: 0.5rem;">Choose how members can interact</p>
+                <p class="helper-text">Choose how members can interact</p>
             </section>
 
             <section>
                 <h4>Message Timer</h4>
-                <select id="settingsMessageTimer" style="width: 100%; padding: 0.8rem; background: #181818; border: 1px solid #2A2A2A; border-radius: 8px; color: #E6E6E6; font-family: 'Inter', sans-serif;">
+                <select id="settingsMessageTimer" aria-label="Message timer">
                     <option value="none">Forever</option>
                     <option value="1">Fades away after 1 min</option>
                     <option value="2">Fades away after 2 min</option>
@@ -177,7 +174,7 @@
                 <p class="helper-text">Set how long messages take to fade away</p>
             </section>
 
-            <div style="display:flex;flex-direction:column;gap:1rem;margin-top:2rem;">
+            <div class="form-actions">
                 <button class="btn-primary" onclick="saveRoomSettings()">Save Settings</button>
                 <button class="btn-secondary" onclick="closeRoomSettings()">Cancel</button>
             </div>
@@ -208,16 +205,16 @@
                 <label><input type="checkbox">Don't show what I'm doing</label>
             </section>
 
-            <section id="resetSection" style="display:none;">
+            <section class="hidden" id="resetSection">
                 <h4>Data</h4>
-                <button class="btn-secondary" onclick="resetEverything()" style="width:100%;margin-top:0.5rem;">Start over</button>
-                <p style="font-size:0.8rem;color:#9A9A9A;margin-top:0.5rem;">This will delete all rooms, messages, and settings</p>
+                <button class="btn-secondary btn-full" onclick="resetEverything()">Start over</button>
+                <p class="helper-text">This will delete all rooms, messages, and settings</p>
             </section>
 
-            <div style="display:flex;flex-direction:column;gap:1rem;margin-top:2rem;">
+            <div class="form-actions">
                 <button class="btn-primary" onclick="saveSettings()">Save it</button>
                 <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
-                <button class="btn-secondary" onclick="logout()" style="background: rgba(185,138,138,0.2); color: #B98A8A;">Leave for now</button>
+                <button class="btn-secondary btn-danger" onclick="logout()">Leave for now</button>
             </div>
         </div>
     </div>
@@ -251,7 +248,7 @@
         <div class="create-post-container">
             <div class="create-post-header">
                 <h3>Share something</h3>
-                <button class="close-btn" onclick="closeCreatePost()">
+                <button class="close-btn" onclick="closeCreatePost()" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -259,7 +256,7 @@
             <div class="create-post-content">
                 <div class="form-group">
                     <label>Which Room(or just your corner)</label>
-                    <select id="postRoomSelect">
+                    <select id="postRoomSelect" aria-label="Select room for post">
                         <option value="">Just in my corner(everyone can see)</option>
                     </select>
                     <p class="helper-text">Only people in that room can see this</p>
@@ -274,7 +271,7 @@
                 <div class="media-upload-section">
                     <label>Want to add a photo or video?</label>
                     <div class="upload-area" id="uploadArea">
-                        <input type="file" id="mediaInput" accept="image/*,video/*" multiple style="display: none;">
+                        <input type="file" id="mediaInput" accept="image/*,video/*" multiple class="hidden" aria-label="Upload media">
                         <button class="upload-btn" onclick="document.getElementById('mediaInput').click()">
                             <i class="fas fa-camera"></i>
                             <span>Pick something to share</span>

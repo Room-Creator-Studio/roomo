@@ -36,4 +36,3 @@ try {
 // Export initialized services
 export { db, app };
 export default app;
-s
