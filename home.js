@@ -31,12 +31,6 @@ console.log('sessionUser:', sessionUser);
 console.log('sessionDeviceId:', sessionDeviceId);
 console.log('sessionId:', sessionId);
 
-if (!sessionUser) {
-    console.error('❌ No session user found - redirecting to login');
-    window.location.href = 'loginnsignup.html';
-    throw new Error('No session');
-}
-
 const currentUser = sessionUser;
 const currentDeviceId = sessionDeviceId || 'unknown-device';
 const currentSessionId = sessionId || 'unknown-session';
@@ -550,7 +544,6 @@ window.logout = function() {
         sessionStorage.removeItem('currentSessionUser');
         sessionStorage.removeItem('currentSessionDeviceId');
         sessionStorage.removeItem('currentSessionId');
-        window.location.href = 'loginnsignup.html';
     }
 };
 
