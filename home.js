@@ -31,6 +31,12 @@ console.log('sessionUser:', sessionUser);
 console.log('sessionDeviceId:', sessionDeviceId);
 console.log('sessionId:', sessionId);
 
+// ✅ Guard: redirect to login if no session exists
+if (!sessionUser) {
+    console.warn('No session found, redirecting to login...');
+    window.location.href = "loginnsignup.html";
+}
+
 const currentUser = sessionUser;
 const currentDeviceId = sessionDeviceId || 'unknown-device';
 const currentSessionId = sessionId || 'unknown-session';
@@ -539,11 +545,13 @@ function closeSettings() {
     document.getElementById('settingsOverlay').style.display = 'none';
 }
 
+// ✅ Fixed: now redirects after clearing session
 window.logout = function() {
     if (confirm('Are you sure you want to exit your room?')) {
         sessionStorage.removeItem('currentSessionUser');
         sessionStorage.removeItem('currentSessionDeviceId');
         sessionStorage.removeItem('currentSessionId');
+        window.location.href = "index.html";
     }
 };
 
